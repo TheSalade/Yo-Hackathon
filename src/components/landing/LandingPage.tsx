@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { TICKER_VAULTS, VAULT_META } from '@/lib/constants';
+import { useTotalTvl } from '@yo-protocol/react';
 
 
 function YodOverlay({ active, onDone }: { active: boolean; onDone: () => void }) {
@@ -251,6 +252,18 @@ function PhoneMockup() {
 }
 
 export default function LandingPage() {
+    const { tvl } = useTotalTvl();
+    const currentTvlUsd = tvl.length > 0 ? parseFloat(tvl[tvl.length - 1].tvlUsd) : undefined;
+    const tvlFmt = currentTvlUsd
+        ? (() => {
+            if (currentTvlUsd >= 1_000_000) return `$${(currentTvlUsd / 1_000_000).toFixed(1)}M+`;
+            if (currentTvlUsd >= 1_000) return `$${(currentTvlUsd / 1_000).toFixed(1)}K+`;
+            return `$${currentTvlUsd.toFixed(0)}+`;
+        })()
+        : '$180M+';
+
+    const apys = Object.values(VAULT_META).map(m => m.apy);
+    const avgApyFmt = apys.length ? (apys.reduce((a, b) => a + b, 0) / apys.length).toFixed(1) + '%' : '4.8%';
 
     return (
         <>
@@ -335,11 +348,11 @@ export default function LandingPage() {
                         </p>
                         <div style={{ display: 'flex', gap: '32px', justifyContent: 'flex-end', marginTop: '48px' }}>
                             {[
-                                { val: '$180M+', label: 'TVL secured' },
-                                { val: '4.8%', label: 'Avg. APY' },
+                                { val: tvlFmt, label: 'TVL secured' },
+                                { val: avgApyFmt, label: 'Avg. APY' },
                             ].map(s => (
                                 <div key={s.label} style={{ textAlign: 'right' }}>
-                                    <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '24px', fontWeight: 700, color: '#f5f4f0', letterSpacing: '-0.5px' }}>{s.val}</div>
+                                    <div suppressHydrationWarning style={{ fontFamily: 'Syne, sans-serif', fontSize: '24px', fontWeight: 700, color: '#f5f4f0', letterSpacing: '-0.5px' }}>{s.val}</div>
                                     <div style={{ fontSize: '11px', color: '#666', letterSpacing: '0.05em', marginTop: '2px' }}>{s.label}</div>
                                 </div>
                             ))}
