@@ -1,0 +1,189 @@
+'use client';
+
+import { useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
+
+interface YOdAnimationProps {
+    active: boolean;
+    asset: string;
+    amount: string;
+    onDone: () => void;
+}
+
+export function YOdAnimation({ active, asset, amount, onDone }: YOdAnimationProps) {
+    const particlesRef = useRef<HTMLDivElement>(null);
+    const styleRefs = useRef<HTMLStyleElement[]>([]);
+
+    const spawnParticles = useCallback(() => {
+        if (!particlesRef.current) return;
+        const container = particlesRef.current;
+        container.innerHTML = '';
+
+        // Clean up old particle styles
+        styleRefs.current.forEach(s => s.remove());
+        styleRefs.current = [];
+
+        for (let i = 0; i < 28; i++) {
+            const startX = 50 + (Math.random() - 0.5) * 20;
+            const startY = 45 + (Math.random() - 0.5) * 20;
+            const angle = Math.random() * Math.PI * 2;
+            const dist = 80 + Math.random() * 180;
+            const endX = startX + Math.cos(angle) * dist;
+            const endY = startY + Math.sin(angle) * dist;
+            const size = 3 + Math.random() * 5;
+            const isYellow = Math.random() > 0.45;
+            const delay = Math.random() * 0.4;
+            const duration = 0.8 + Math.random() * 0.4;
+            const keyframeName = `yo-particle-${Date.now()}-${i}`;
+
+            const style = document.createElement('style');
+            style.textContent = `
+        @keyframes ${keyframeName} {
+          0% { left:${startX}%;top:${startY}%;opacity:1;transform:scale(1);}
+          100% { left:${endX}%;top:${endY}%;opacity:0;transform:scale(0);}
+        }
+      `;
+            document.head.appendChild(style);
+            styleRefs.current.push(style);
+
+            const p = document.createElement('div');
+            p.style.cssText = `
+        position:absolute;
+        width:${size}px;height:${size}px;
+        background:${isYellow ? '#d4f500' : '#00e87a'};
+        border-radius:50%;
+        animation:${keyframeName} ${duration}s ${delay}s ease-out forwards;
+        left:${startX}%;top:${startY}%;
+        pointer-events:none;
+      `;
+            container.appendChild(p);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (!active) return;
+        spawnParticles();
+        const t = setTimeout(() => {
+            onDone();
+            styleRefs.current.forEach(s => s.remove());
+            styleRefs.current = [];
+        }, 2500);
+        return () => clearTimeout(t);
+    }, [active, spawnParticles, onDone]);
+
+    if (typeof window === 'undefined') return null;
+
+    return createPortal(
+        <div
+            style={{
+                position: 'fixed',
+                inset: 0,
+                background: 'rgba(10,10,10,0.96)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 9000,
+                opacity: active ? 1 : 0,
+                pointerEvents: active ? 'all' : 'none',
+                transition: 'opacity 0.3s ease',
+                backdropFilter: 'blur(8px)',
+                overflow: 'hidden',
+            }}
+        >
+            {/* Particles layer */}
+            <div
+                ref={particlesRef}
+                style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}
+            />
+
+            {/* Glow bg */}
+            <div style={{
+                position: 'absolute',
+                width: '400px', height: '400px',
+                background: 'radial-gradient(circle, rgba(212,245,0,0.1) 0%, transparent 70%)',
+                borderRadius: '50%',
+                filter: 'blur(60px)',
+                pointerEvents: 'none',
+            }} />
+
+            {active && (
+                <>
+                    {/* YO logo spin */}
+                    <div style={{
+                        fontFamily: 'Syne, sans-serif',
+                        fontSize: '80px',
+                        fontWeight: 800,
+                        color: '#d4f500',
+                        letterSpacing: '-3px',
+                        animation: 'yoSpin 0.8s cubic-bezier(0.34,1.56,0.64,1) forwards',
+                        position: 'relative',
+                        zIndex: 1,
+                        textShadow: '0 0 80px rgba(212,245,0,0.5)',
+                    }}>
+                        YO
+                    </div>
+
+                    {/* Text lines */}
+                    <div style={{
+                        fontFamily: 'DM Sans, sans-serif',
+                        fontSize: '16px',
+                        color: '#888',
+                        marginTop: '24px',
+                        opacity: 0,
+                        animation: 'fadeUp 0.5s 0.7s ease forwards',
+                        letterSpacing: '0.02em',
+                        position: 'relative',
+                        zIndex: 1,
+                    }}>
+                        Your {asset} has been
+                    </div>
+
+                    <div style={{
+                        fontFamily: 'Syne, sans-serif',
+                        fontSize: '32px',
+                        fontWeight: 800,
+                        color: '#f5f4f0',
+                        marginTop: '8px',
+                        opacity: 0,
+                        animation: 'fadeUp 0.5s 0.9s ease forwards',
+                        letterSpacing: '-0.5px',
+                        position: 'relative',
+                        zIndex: 1,
+                    }}>
+                        YO&apos;d ✦
+                    </div>
+
+                    <div style={{
+                        fontFamily: 'Syne, sans-serif',
+                        fontSize: '20px',
+                        fontWeight: 700,
+                        color: '#d4f500',
+                        marginTop: '12px',
+                        opacity: 0,
+                        animation: 'fadeUp 0.5s 1.1s ease forwards',
+                        position: 'relative',
+                        zIndex: 1,
+                    }}>
+                        +{amount}
+                    </div>
+
+                    {/* Bottom hint */}
+                    <div style={{
+                        position: 'absolute',
+                        bottom: '48px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        opacity: 0,
+                        animation: 'fadeUp 0.5s 1.3s ease forwards',
+                    }}>
+                        <div style={{ width: '6px', height: '6px', background: '#00e87a', borderRadius: '50%', animation: 'pulse 1.5s infinite' }} />
+                        <span style={{ fontSize: '12px', color: '#555', letterSpacing: '0.1em' }}>Confirmed onchain</span>
+                    </div>
+                </>
+            )}
+        </div>,
+        document.body
+    );
+}
