@@ -1,53 +1,9 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { usePrivy } from '@privy-io/react-auth';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { TICKER_VAULTS, VAULT_META } from '@/lib/constants';
 
-function CustomCursor() {
-    const cursorRef = useRef<HTMLDivElement>(null);
-    const ringRef = useRef<HTMLDivElement>(null);
-    const mouse = useRef({ x: 0, y: 0 });
-    const ring = useRef({ x: 0, y: 0 });
-    const raf = useRef<number>(0);
-
-    useEffect(() => {
-        const onMove = (e: MouseEvent) => {
-            mouse.current = { x: e.clientX, y: e.clientY };
-        };
-        document.addEventListener('mousemove', onMove);
-
-        const animate = () => {
-            if (cursorRef.current) {
-                cursorRef.current.style.left = mouse.current.x + 'px';
-                cursorRef.current.style.top = mouse.current.y + 'px';
-            }
-            ring.current.x += (mouse.current.x - ring.current.x) * 0.12;
-            ring.current.y += (mouse.current.y - ring.current.y) * 0.12;
-            if (ringRef.current) {
-                ringRef.current.style.left = ring.current.x + 'px';
-                ringRef.current.style.top = ring.current.y + 'px';
-            }
-            raf.current = requestAnimationFrame(animate);
-        };
-        raf.current = requestAnimationFrame(animate);
-
-        document.body.classList.add('custom-cursor');
-        return () => {
-            document.removeEventListener('mousemove', onMove);
-            cancelAnimationFrame(raf.current);
-            document.body.classList.remove('custom-cursor');
-        };
-    }, []);
-
-    return (
-        <>
-            <div ref={cursorRef} className="cursor" />
-            <div ref={ringRef} className="cursor-ring" />
-        </>
-    );
-}
 
 function YodOverlay({ active, onDone }: { active: boolean; onDone: () => void }) {
     const particlesRef = useRef<HTMLDivElement>(null);
@@ -295,18 +251,9 @@ function PhoneMockup() {
 }
 
 export default function LandingPage() {
-    const { login, authenticated } = usePrivy();
-    const router = useRouter();
-
-    useEffect(() => {
-        if (authenticated) {
-            router.push('/app');
-        }
-    }, [authenticated, router]);
 
     return (
         <>
-            <CustomCursor />
             <div className="noise-overlay" />
 
             {/* NAV */}
@@ -334,33 +281,19 @@ export default function LandingPage() {
                         onMouseEnter={e => (e.currentTarget.style.color = '#f5f4f0')}
                         onMouseLeave={e => (e.currentTarget.style.color = '#888')}>Docs</a></li>
                 </ul>
-                <button
+                <Link
+                    href="/app/save"
                     id="nav-launch-btn"
-                    onClick={login}
                     style={{
-                        background: '#d4f500',
-                        color: '#0a0a0a',
-                        fontFamily: 'Syne, sans-serif',
-                        fontWeight: 700,
-                        fontSize: '13px',
-                        padding: '10px 22px',
-                        borderRadius: '100px',
-                        border: 'none',
-                        cursor: 'pointer',
-                        letterSpacing: '0.02em',
-                        transition: 'transform 0.2s, box-shadow 0.2s',
+                        background: '#d4f500', color: '#0a0a0a',
+                        fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '13px',
+                        padding: '10px 22px', borderRadius: '100px',
+                        textDecoration: 'none', display: 'inline-block',
+                        letterSpacing: '0.02em', transition: 'transform 0.2s, box-shadow 0.2s',
                     }}
-                    onMouseEnter={e => {
-                        e.currentTarget.style.transform = 'scale(1.04)';
-                        e.currentTarget.style.boxShadow = '0 0 24px rgba(212,245,0,0.3)';
-                    }}
-                    onMouseLeave={e => {
-                        e.currentTarget.style.transform = 'scale(1)';
-                        e.currentTarget.style.boxShadow = 'none';
-                    }}
-                >
-                    Launch App
-                </button>
+                    onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => { e.currentTarget.style.transform = 'scale(1.04)'; e.currentTarget.style.boxShadow = '0 0 24px rgba(212,245,0,0.3)'; }}
+                    onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none'; }}
+                >Launch App</Link>
             </nav>
 
             {/* HERO */}
@@ -437,33 +370,19 @@ export default function LandingPage() {
                         </div>
 
                         <div style={{ display: 'flex', gap: '12px', marginTop: '40px', alignItems: 'center' }}>
-                            <button
+                            <Link
+                                href="/app/save"
                                 id="start-saving-btn"
-                                onClick={login}
                                 style={{
-                                    background: '#d4f500',
-                                    color: '#0a0a0a',
-                                    fontFamily: 'Syne, sans-serif',
-                                    fontWeight: 700,
-                                    fontSize: '13px',
-                                    padding: '12px 24px',
-                                    borderRadius: '100px',
-                                    border: 'none',
-                                    cursor: 'pointer',
-                                    letterSpacing: '0.02em',
-                                    transition: 'transform 0.2s, box-shadow 0.2s',
+                                    background: '#d4f500', color: '#0a0a0a',
+                                    fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '13px',
+                                    padding: '12px 24px', borderRadius: '100px',
+                                    textDecoration: 'none', display: 'inline-block',
+                                    letterSpacing: '0.02em', transition: 'transform 0.2s, box-shadow 0.2s',
                                 }}
-                                onMouseEnter={e => {
-                                    e.currentTarget.style.transform = 'scale(1.04)';
-                                    e.currentTarget.style.boxShadow = '0 0 24px rgba(212,245,0,0.3)';
-                                }}
-                                onMouseLeave={e => {
-                                    e.currentTarget.style.transform = 'scale(1)';
-                                    e.currentTarget.style.boxShadow = 'none';
-                                }}
-                            >
-                                Start saving →
-                            </button>
+                                onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => { e.currentTarget.style.transform = 'scale(1.04)'; e.currentTarget.style.boxShadow = '0 0 24px rgba(212,245,0,0.3)'; }}
+                                onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none'; }}
+                            >Start saving →</Link>
                             <button style={{ color: '#888', fontSize: '13px', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', transition: 'color 0.2s' }}
                                 onMouseEnter={e => (e.currentTarget.style.color = '#f5f4f0')}
                                 onMouseLeave={e => (e.currentTarget.style.color = '#888')}>
