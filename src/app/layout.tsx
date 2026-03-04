@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Providers } from '@/lib/providers';
+import { CustomCursor } from '@/components/shared/CustomCursor';
 
 export const metadata: Metadata = {
   title: 'Zyo — Your savings, finally working hard.',
@@ -30,6 +31,7 @@ export default function RootLayout({
       </head>
       <body>
         <Providers>
+          <CustomCursor />
           {children}
         </Providers>
       </body>
