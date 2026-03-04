@@ -1,0 +1,128 @@
+'use client';
+
+import Link from 'next/link';
+import { useAccount, useConnect, useDisconnect } from 'wagmi';
+import { injected } from 'wagmi/connectors';
+
+type ActiveTab = 'Save' | 'History' | 'Dashboard';
+
+const NAV_TABS = [
+    { label: 'Save', href: '/app/save' },
+    { label: 'History', href: '/app/history' },
+    { label: 'Dashboard', href: '/app/dashboard' },
+] as const;
+
+function ConnectWalletBtn() {
+    const { connect } = useConnect();
+    return (
+        <button
+            onClick={() => connect({ connector: injected() })}
+            style={{
+                background: '#d4f500', color: '#0a0a0a',
+                fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 12,
+                padding: '8px 18px', borderRadius: 100, border: 'none',
+                letterSpacing: '0.03em',
+                transition: 'transform 0.15s, box-shadow 0.2s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.04)'; e.currentTarget.style.boxShadow = '0 0 20px rgba(212,245,0,0.3)'; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none'; }}
+        >
+            Connect wallet
+        </button>
+    );
+}
+
+export function AppHeader({ active }: { active: ActiveTab }) {
+    const { address, isConnected } = useAccount();
+    const { disconnect } = useDisconnect();
+    const shortAddr = address ? `${address.slice(0, 6)}...${address.slice(-4)}` : '';
+
+    return (
+        <nav style={{
+            position: 'fixed', top: 0, left: 0, right: 0,
+            zIndex: 100,
+            background: 'rgba(10,10,10,0.8)',
+            borderBottom: '1px solid #1e1e1e',
+            backdropFilter: 'blur(16px)',
+            padding: '20px 40px',
+            // Flex for left/right, tabs absolutely centered
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+        }}>
+
+            {/* ── Left: Logo → home ── */}
+            <Link href="/" style={{ textDecoration: 'none', color: 'inherit', flexShrink: 0 }}>
+                <div style={{
+                    fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 20,
+                    letterSpacing: '-0.5px', display: 'flex', alignItems: 'center', gap: 7,
+                }}>
+                    <div style={{ width: 7, height: 7, background: '#d4f500', borderRadius: '50%', animation: 'pulse 2s infinite' }} />
+                    Zyo
+                </div>
+            </Link>
+
+            {/* ── Center: tabs — absolutely centered to viewport ── */}
+            <div style={{
+                position: 'absolute',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                display: 'flex', gap: 4,
+                background: '#141414', border: '1px solid #1e1e1e',
+                borderRadius: 100, padding: 4,
+            }}>
+                {NAV_TABS.map(({ label, href }) => {
+                    const isActive = label === active;
+                    const pill = (
+                        <span style={{
+                            fontFamily: 'DM Sans, sans-serif',
+                            fontSize: 12, padding: '7px 18px', borderRadius: 100,
+                            color: isActive ? '#f5f4f0' : '#555',
+                            background: isActive ? '#1e1e1e' : 'none',
+                            display: 'inline-block',
+                            transition: 'color 0.2s',
+                        }}
+                            onMouseEnter={e => { if (!isActive) e.currentTarget.style.color = '#f5f4f0'; }}
+                            onMouseLeave={e => { if (!isActive) e.currentTarget.style.color = '#555'; }}
+                        >{label}</span>
+                    );
+                    return isActive
+                        ? <span key={label}>{pill}</span>
+                        : <Link key={label} href={href} style={{ textDecoration: 'none' }}>{pill}</Link>;
+                })}
+            </div>
+
+            {/* ── Right: wallet (right-aligned) ── */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                {isConnected ? (
+                    <>
+                        <div style={{
+                            display: 'flex', alignItems: 'center', gap: 8,
+                            background: '#141414', border: '1px solid #1e1e1e',
+                            borderRadius: 100, padding: '8px 16px',
+                            fontSize: 12, color: '#888',
+                        }}>
+                            <div style={{ width: 6, height: 6, background: '#00e87a', borderRadius: '50%', animation: 'pulse 2s infinite' }} />
+                            {shortAddr}
+                        </div>
+                        <button
+                            onClick={() => disconnect()}
+                            style={{
+                                background: 'none', border: '1px solid #2a2a2a', color: '#555',
+                                fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: 12,
+                                padding: '8px 16px', borderRadius: 100, letterSpacing: '0.05em',
+                                transition: 'border-color 0.2s, color 0.2s',
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.borderColor = '#3a3a3a'; e.currentTarget.style.color = '#f5f4f0'; }}
+                            onMouseLeave={e => { e.currentTarget.style.borderColor = '#2a2a2a'; e.currentTarget.style.color = '#555'; }}
+                        >
+                            Disconnect
+                        </button>
+                    </>
+                ) : (
+                    <ConnectWalletBtn />
+                )}
+            </div>
+        </nav>
+    );
+}

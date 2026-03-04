@@ -1,5 +1,5 @@
-import { AppDashboard } from '@/components/app/AppDashboard';
+import { redirect } from 'next/navigation';
 
 export default function AppPage() {
-    return <AppDashboard />;
+    redirect('/app/dashboard');
 }
