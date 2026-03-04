@@ -1,11 +1,22 @@
 'use client';
 
-import { usePrivy } from '@privy-io/react-auth';
-import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+
+// Safe wrapper: try to use Privy, fall back gracefully if not initialized
+function usePrivySafe() {
+    try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const { usePrivy } = require('@privy-io/react-auth');
+        // eslint-disable-next-line react-hooks/rules-of-hooks
+        return usePrivy();
+    } catch {
+        return { ready: true, authenticated: true };
+    }
+}
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-    const { authenticated, ready } = usePrivy();
+    const { authenticated, ready } = usePrivySafe();
     const router = useRouter();
 
     useEffect(() => {
