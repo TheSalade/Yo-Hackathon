@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useAccount } from 'wagmi';
 import { formatUnits } from 'viem';
-import { useVaultState, useUserPosition, useVaultHistory } from '@yo-protocol/react';
+import { useVaultState, useUserPosition, useVaultHistory, useVaults } from '@yo-protocol/react';
 import type { VaultConfig } from '@yo-protocol/core';
 import { AreaChart, Area, ResponsiveContainer, Tooltip } from 'recharts';
 import { VAULT_META } from '@/lib/constants';
@@ -29,6 +29,13 @@ export function VaultCard({ vault }: VaultCardProps) {
     // useVaultHistory(vaultId) → { yieldHistory, tvlHistory }
     const { yieldHistory } = useVaultHistory(vault.symbol);
 
+    // Dynamic APY from SDK
+    const { vaults } = useVaults();
+    const statItem = vaults?.find(s => s.id === vault.symbol);
+    const sdkApyRaw = statItem?.yield?.['30d'] || statItem?.yield?.['7d'];
+    const activeApyNum = sdkApyRaw ? Number(sdkApyRaw) * 100 : meta.apy;
+    const activeApyStr = activeApyNum.toFixed(1);
+
     // Format TVL
     const tvlFormatted = vaultState
         ? (() => {
@@ -50,7 +57,7 @@ export function VaultCard({ vault }: VaultCardProps) {
     // Build chart data
     const chartData = yieldHistory && yieldHistory.length > 0
         ? yieldHistory.slice(-20).map(point => ({ t: point.timestamp, apy: point.value }))
-        : Array.from({ length: 15 }, (_, i) => ({ t: i, apy: meta.apy + (Math.random() - 0.5) * 0.4 }));
+        : Array.from({ length: 15 }, (_, i) => ({ t: i, apy: activeApyNum + (Math.random() - 0.5) * 0.4 }));
 
     const hasPosition = userAssets > 0;
 
@@ -88,7 +95,7 @@ export function VaultCard({ vault }: VaultCardProps) {
                         </div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '22px', fontWeight: 800, color: '#00e87a', letterSpacing: '-0.5px' }}>{meta.apy}%</div>
+                        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '22px', fontWeight: 800, color: '#00e87a', letterSpacing: '-0.5px' }}>{activeApyStr}%</div>
                         <div style={{ fontSize: '10px', color: '#555', letterSpacing: '0.05em', textTransform: 'uppercase' }}>APY</div>
                     </div>
                 </div>

@@ -13,6 +13,7 @@ import {
     useDeposit,
     useShareBalance,
     useRedeem,
+    useVaults,
 } from '@yo-protocol/react';
 import Link from 'next/link';
 import { AppHeader } from '@/components/shared/AppHeader';
@@ -139,10 +140,14 @@ function CustomCursor() {
 // ─── Vault row sub-components ─────────────────────────────────────────────────
 
 function VaultApyBadge({ id }: { id: VaultId }) {
-    const { vaultState } = useVaultState(id);
+    const { vaults } = useVaults();
     const meta = VAULT_META[id];
-    // Show SDK APY if available, fallback to constants
-    const apy = meta?.apy ?? '—';
+
+    // Check SDK for APY ('30d' or '7d' average), fallback to meta.apy
+    const statItem = vaults?.find(s => s.id === id);
+    const sdkApyRaw = statItem?.yield?.['30d'] || statItem?.yield?.['7d'];
+    const apy = sdkApyRaw ? (Number(sdkApyRaw) * 100).toFixed(1) : (meta?.apy ?? '—');
+
     return <span style={{ fontFamily: 'Syne, sans-serif', fontSize: 12, fontWeight: 700, color: '#00e87a' }}>{apy}%</span>;
 }
 
@@ -177,6 +182,12 @@ export function SaveDashboard() {
     }, [parsedAmt]);
 
     // ── SDK hooks ──
+    const { vaults } = useVaults();
+    const statItem = vaults?.find(s => s.id === activeId);
+    const sdkApyRaw = statItem?.yield?.['30d'] || statItem?.yield?.['7d'];
+    const activeApyNum = sdkApyRaw ? Number(sdkApyRaw) * 100 : meta.apy;
+    const activeApyStr = activeApyNum.toFixed(1);
+
     const { vaultState, isLoading: tvlLoading } = useVaultState(activeId);
     const { position: userPos } = useUserPosition(activeId, address);
     const { shares: previewShares } = usePreviewDeposit(activeId, debouncedAmt);
@@ -275,8 +286,8 @@ export function SaveDashboard() {
         ? Number(formatUnits(previewShares, decimals)).toFixed(4)
         : (amountNum * 0.9997).toFixed(4);
 
-    const dailyYield = amountNum > 0 ? (amountNum * meta.apy / 100 / 365).toFixed(4) : '—';
-    const yearlyYield = amountNum > 0 ? (amountNum * meta.apy / 100).toFixed(2) : '—';
+    const dailyYield = amountNum > 0 ? (amountNum * activeApyNum / 100 / 365).toFixed(4) : '—';
+    const yearlyYield = amountNum > 0 ? (amountNum * activeApyNum / 100).toFixed(2) : '—';
 
     const shortAddr = address ? `${address.slice(0, 6)}...${address.slice(-4)}` : '—';
 
@@ -433,13 +444,13 @@ export function SaveDashboard() {
                         {/* Stats grid */}
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 20 }}>
                             {[
-                                { label: 'Current APY', val: `${meta.apy}%`, color: '#00e87a', sub: '7-day average' },
+                                { label: 'Current APY', val: `${activeApyStr}%`, color: '#00e87a', sub: '30-day average' },
                                 { label: 'Total Value Locked', val: tvlFmt, color: '#d4f500', sub: 'across all depositors' },
                                 {
                                     label: 'Your position',
                                     val: userAssets > 0 ? `${active.symbol}${userAssets.toLocaleString(undefined, { maximumFractionDigits: 4 })}` : '—',
                                     color: '#f5f4f0',
-                                    sub: userAssets > 0 ? `earning ${meta.apy}% APY` : 'No deposit yet',
+                                    sub: userAssets > 0 ? `earning ${activeApyStr}% APY` : 'No deposit yet',
                                 },
                             ].map(s => (
                                 <div key={s.label} style={{ background: 'rgba(255,255,255,0.03)', border: S.border, borderRadius: 16, padding: 18 }}>
@@ -482,7 +493,7 @@ export function SaveDashboard() {
                                     ['Deposited', `${userAssets.toLocaleString(undefined, { maximumFractionDigits: 4 })} ${active.asset}`, '#f5f4f0'],
                                     ['yoTokens held', `${userShares.toFixed(4)} ${active.id}`, '#f5f4f0'],
                                     ['Current value', `${active.symbol}${userAssets.toLocaleString(undefined, { maximumFractionDigits: 4 })}`, '#f5f4f0'],
-                                    ['Current APY', `${meta.apy}%`, '#00e87a'],
+                                    ['Current APY', `${activeApyStr}%`, '#00e87a'],
                                 ].map(([k, v, c], i, arr) => (
                                     <div key={k as string} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: i < arr.length - 1 ? S.border : 'none' }}>
                                         <span style={{ fontSize: 12, color: '#888' }}>{k}</span>
