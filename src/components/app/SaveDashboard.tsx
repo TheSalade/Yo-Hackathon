@@ -7,13 +7,13 @@ import type { VaultId } from '@yo-protocol/core';
 import {
     useVaultState,
     useUserPosition,
+    useVaultHistory,
     usePreviewDeposit,
     useAllowance,
     useApprove,
     useDeposit,
     useShareBalance,
     useRedeem,
-    useVaults,
 } from '@yo-protocol/react';
 import Link from 'next/link';
 import { AppHeader } from '@/components/shared/AppHeader';
@@ -137,18 +137,18 @@ function CustomCursor() {
     );
 }
 
-// ─── Vault row sub-components ─────────────────────────────────────────────────
+// ─── APY Badge for vault sidebar ─────────────────────────────────────────────
 
 function VaultApyBadge({ id }: { id: VaultId }) {
-    const { vaults } = useVaults();
     const meta = VAULT_META[id];
+    const { yieldHistory } = useVaultHistory(id);
 
-    // Check SDK for APY ('30d' or '7d' average), fallback to meta.apy
-    const statItem = vaults?.find(s => s.id === id);
-    const sdkApyRaw = statItem?.yield?.['30d'] || statItem?.yield?.['7d'];
-    const apy = sdkApyRaw ? (Number(sdkApyRaw) * 100).toFixed(1) : (meta?.apy ?? '—');
+    // Latest APY from SDK yield history (last data point value = APY %)
+    const latestApy = yieldHistory && yieldHistory.length > 0
+        ? yieldHistory[yieldHistory.length - 1].value
+        : meta?.apy;
 
-    return <span style={{ fontFamily: 'Syne, sans-serif', fontSize: 12, fontWeight: 700, color: '#00e87a' }}>{apy}%</span>;
+    return <span style={{ fontFamily: 'Syne, sans-serif', fontSize: 12, fontWeight: 700, color: '#00e87a' }}>{latestApy?.toFixed(1)}%</span>;
 }
 
 // ─── Connect button (used in deposit panel when wallet not connected) ─────────
@@ -181,15 +181,21 @@ export function SaveDashboard() {
         return () => clearTimeout(t);
     }, [parsedAmt]);
 
-    // ── SDK hooks ──
-    const { vaults } = useVaults();
-    const statItem = vaults?.find(s => s.id === activeId);
-    const sdkApyRaw = statItem?.yield?.['30d'] || statItem?.yield?.['7d'];
-    const activeApyNum = sdkApyRaw ? Number(sdkApyRaw) * 100 : meta.apy;
-    const activeApyStr = activeApyNum.toFixed(1);
-
+    // ── SDK hooks (official usage) ──
+    // useVaultState: on-chain vault data (totalAssets, totalSupply, assetDecimals)
     const { vaultState, isLoading: tvlLoading } = useVaultState(activeId);
+
+    // useUserPosition: user's shares & assets in this vault
     const { position: userPos } = useUserPosition(activeId, address);
+
+    // useVaultHistory: APY timeseries — last point .value is the current APY %
+    const { yieldHistory } = useVaultHistory(activeId);
+    const latestApy = yieldHistory && yieldHistory.length > 0
+        ? yieldHistory[yieldHistory.length - 1].value
+        : meta.apy;
+    const activeApyStr = latestApy.toFixed(1);
+    const activeApyNum = latestApy;
+
     const { shares: previewShares } = usePreviewDeposit(activeId, debouncedAmt);
     const { shares: ownedShares } = useShareBalance(activeId, address);
 
@@ -267,6 +273,7 @@ export function SaveDashboard() {
     }, [ownedShares, redeem]);
 
     // ── Formatted display values ──
+    // TVL from on-chain vault state
     const tvlFmt = (() => {
         if (tvlLoading || !vaultState) return '—';
         const n = Number(formatUnits(vaultState.totalAssets, vaultState.assetDecimals));
@@ -275,6 +282,7 @@ export function SaveDashboard() {
         return `$${n.toFixed(2)}`;
     })();
 
+    // User position from useUserPosition
     const userAssets = (userPos && vaultState)
         ? Number(formatUnits(userPos.assets, vaultState.assetDecimals))
         : 0;

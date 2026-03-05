@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useAccount } from 'wagmi';
 import { formatUnits } from 'viem';
-import { useVaultState, useUserPosition, useVaultHistory, useVaults } from '@yo-protocol/react';
+import { useVaultState, useUserPosition, useVaultHistory } from '@yo-protocol/react';
 import type { VaultConfig } from '@yo-protocol/core';
 import { AreaChart, Area, ResponsiveContainer, Tooltip } from 'recharts';
 import { VAULT_META } from '@/lib/constants';
@@ -29,12 +29,12 @@ export function VaultCard({ vault }: VaultCardProps) {
     // useVaultHistory(vaultId) → { yieldHistory, tvlHistory }
     const { yieldHistory } = useVaultHistory(vault.symbol);
 
-    // Dynamic APY from SDK
-    const { vaults } = useVaults();
-    const statItem = vaults?.find(s => s.id === vault.symbol);
-    const sdkApyRaw = statItem?.yield?.['30d'] || statItem?.yield?.['7d'];
-    const activeApyNum = sdkApyRaw ? Number(sdkApyRaw) * 100 : meta.apy;
-    const activeApyStr = activeApyNum.toFixed(1);
+    // APY from SDK: last point of yieldHistory.value (in %)
+    const latestApy = yieldHistory && yieldHistory.length > 0
+        ? yieldHistory[yieldHistory.length - 1].value
+        : meta.apy;
+    const activeApyStr = latestApy.toFixed(1);
+    const activeApyNum = latestApy;
 
     // Format TVL
     const tvlFormatted = vaultState
