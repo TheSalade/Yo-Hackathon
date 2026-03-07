@@ -7,7 +7,7 @@ import type { VaultId } from '@yo-protocol/core';
 import {
     useVaultState,
     useUserPosition,
-    useVaultHistory,
+    useVaults,
     usePreviewDeposit,
     useAllowance,
     useApprove,
@@ -141,14 +141,15 @@ function CustomCursor() {
 
 function VaultApyBadge({ id }: { id: VaultId }) {
     const meta = VAULT_META[id];
-    const { yieldHistory } = useVaultHistory(id);
+    const { vaults } = useVaults();
 
-    // Latest APY from SDK yield history (last data point value = APY %)
-    const latestApy = yieldHistory && yieldHistory.length > 0
-        ? yieldHistory[yieldHistory.length - 1].value
-        : meta?.apy;
+    // yield['7d'] is a decimal ratio (e.g. '0.0555' = 5.55%)
+    // tvl.formatted is the TVL in USD
+    const statItem = vaults?.find(v => v.id === id);
+    const yieldRaw = statItem?.yield?.['7d'] ?? statItem?.yield?.['30d'];
+    const apy = yieldRaw ? (Number(yieldRaw) * 100).toFixed(2) : (meta?.apy ?? '—');
 
-    return <span style={{ fontFamily: 'Syne, sans-serif', fontSize: 12, fontWeight: 700, color: '#00e87a' }}>{latestApy?.toFixed(1)}%</span>;
+    return <span style={{ fontFamily: 'Syne, sans-serif', fontSize: 12, fontWeight: 700, color: '#00e87a' }}>{apy}%</span>;
 }
 
 // ─── Connect button (used in deposit panel when wallet not connected) ─────────
@@ -181,20 +182,21 @@ export function SaveDashboard() {
         return () => clearTimeout(t);
     }, [parsedAmt]);
 
-    // ── SDK hooks (official usage) ──
-    // useVaultState: on-chain vault data (totalAssets, totalSupply, assetDecimals)
+    // ── SDK hooks ──
+    // useVaults: all vaults summary data (APY, TVL) from the API
+    // yield['7d'] is a decimal ratio — multiply by 100 to get %
+    // tvl.formatted gives the formatted TVL string
+    const { vaults } = useVaults();
+    const statItem = vaults?.find(v => v.id === activeId);
+    const yieldRaw = statItem?.yield?.['7d'] ?? statItem?.yield?.['30d'];
+    const activeApyNum = yieldRaw ? Number(yieldRaw) * 100 : meta.apy;
+    const activeApyStr = activeApyNum.toFixed(2);
+
+    // useVaultState: on-chain vault data (totalAssets, assetDecimals)
     const { vaultState, isLoading: tvlLoading } = useVaultState(activeId);
 
     // useUserPosition: user's shares & assets in this vault
     const { position: userPos } = useUserPosition(activeId, address);
-
-    // useVaultHistory: APY timeseries — last point .value is the current APY %
-    const { yieldHistory } = useVaultHistory(activeId);
-    const latestApy = yieldHistory && yieldHistory.length > 0
-        ? yieldHistory[yieldHistory.length - 1].value
-        : meta.apy;
-    const activeApyStr = latestApy.toFixed(1);
-    const activeApyNum = latestApy;
 
     const { shares: previewShares } = usePreviewDeposit(activeId, debouncedAmt);
     const { shares: ownedShares } = useShareBalance(activeId, address);
@@ -273,8 +275,17 @@ export function SaveDashboard() {
     }, [ownedShares, redeem]);
 
     // ── Formatted display values ──
-    // TVL from on-chain vault state
+    // TVL: use the API-provided tvl.formatted from useVaults when available,
+    // fall back to on-chain totalAssets conversion
     const tvlFmt = (() => {
+        // Prefer API TVL formatted (already in USD)
+        if (statItem?.tvl?.formatted) {
+            const n = Number(statItem.tvl.formatted);
+            if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
+            if (n >= 1_000) return `$${(n / 1_000).toFixed(1)}K`;
+            return `$${n.toFixed(2)}`;
+        }
+        // Fallback: on-chain totalAssets
         if (tvlLoading || !vaultState) return '—';
         const n = Number(formatUnits(vaultState.totalAssets, vaultState.assetDecimals));
         if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;

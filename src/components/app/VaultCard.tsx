@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useAccount } from 'wagmi';
 import { formatUnits } from 'viem';
-import { useVaultState, useUserPosition, useVaultHistory } from '@yo-protocol/react';
+import { useVaultState, useUserPosition, useVaultHistory, useVaults } from '@yo-protocol/react';
 import type { VaultConfig } from '@yo-protocol/core';
 import { AreaChart, Area, ResponsiveContainer, Tooltip } from 'recharts';
 import { VAULT_META } from '@/lib/constants';
@@ -26,15 +26,16 @@ export function VaultCard({ vault }: VaultCardProps) {
     // useUserPosition(vaultId, account) → { position }
     const { position: userPosition } = useUserPosition(vault.symbol, address);
 
-    // useVaultHistory(vaultId) → { yieldHistory, tvlHistory }
+    // useVaultHistory(vaultId) → { yieldHistory, tvlHistory } for chart data
     const { yieldHistory } = useVaultHistory(vault.symbol);
 
-    // APY from SDK: last point of yieldHistory.value (in %)
-    const latestApy = yieldHistory && yieldHistory.length > 0
-        ? yieldHistory[yieldHistory.length - 1].value
-        : meta.apy;
-    const activeApyStr = latestApy.toFixed(1);
-    const activeApyNum = latestApy;
+    // useVaults: API summary with APY (7d) and TVL per vault
+    // yield['7d'] is a decimal ratio (e.g. '0.0555' = 5.55%)
+    const { vaults } = useVaults();
+    const statItem = vaults?.find(v => v.id === vault.symbol);
+    const yieldRaw = statItem?.yield?.['7d'] ?? statItem?.yield?.['30d'];
+    const activeApyNum = yieldRaw ? Number(yieldRaw) * 100 : meta.apy;
+    const activeApyStr = activeApyNum.toFixed(2);
 
     // Format TVL
     const tvlFormatted = vaultState
