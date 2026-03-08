@@ -63,8 +63,19 @@ body.custom-cursor {
 /* Recharts overrides */
 .recharts-wrapper,
 .recharts-surface,
-.recharts-responsive-container {
+.recharts-responsive-container,
+.recharts-wrapper * {
   outline: none !important;
+  box-shadow: none !important;
+}
+
+.recharts-wrapper:focus,
+.recharts-wrapper:focus-within,
+.recharts-wrapper:focus-visible,
+.recharts-surface:focus,
+.recharts-surface:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 /* Noise overlay */
