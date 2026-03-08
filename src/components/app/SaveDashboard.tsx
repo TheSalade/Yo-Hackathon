@@ -291,7 +291,7 @@ export function SaveDashboard() {
         if (!history || history.length === 0) return [];
         const days = chartTab === '7D' ? 7 : chartTab === '30D' ? 30 : 90;
         return history.slice(-days).map(d => ({
-            date: new Date(d.timestamp * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+            date: new Date(d.timestamp * 1000).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }),
             value: Number(d.value)
         }));
     })();
