@@ -41,7 +41,6 @@ const CATEGORIES: { title: string; vaults: VaultDef[] }[] = [
         vaults: [
             { id: 'yoUSD', label: 'USD', asset: 'USDC', chain: 'Base', iconKey: 'usd', symbol: '$' },
             { id: 'yoEUR', label: 'EUR', asset: 'EURC', chain: 'Base', iconKey: 'eur', symbol: '€' },
-            { id: 'yoUSDT', label: 'UST', asset: 'USDT', chain: 'Ethereum', iconKey: 'usdt', symbol: '$' },
         ],
     },
     {
@@ -147,7 +146,7 @@ function VaultApyBadge({ id }: { id: VaultId }) {
     // tvl.formatted is the TVL in USD
     const statItem = vaults?.find(v => v.id === id);
     const yieldRaw = statItem?.yield?.['7d'] ?? statItem?.yield?.['30d'];
-    const apy = yieldRaw ? (Number(yieldRaw) * 100).toFixed(2) : (meta?.apy ?? '—');
+    const apy = yieldRaw ? Number(yieldRaw).toFixed(2) : (meta?.apy ?? '—');
 
     return <span style={{ fontFamily: 'Syne, sans-serif', fontSize: 12, fontWeight: 700, color: '#00e87a' }}>{apy}%</span>;
 }
@@ -189,7 +188,7 @@ export function SaveDashboard() {
     const { vaults } = useVaults();
     const statItem = vaults?.find(v => v.id === activeId);
     const yieldRaw = statItem?.yield?.['7d'] ?? statItem?.yield?.['30d'];
-    const activeApyNum = yieldRaw ? Number(yieldRaw) * 100 : meta.apy;
+    const activeApyNum = yieldRaw ? Number(yieldRaw) : meta.apy;
     const activeApyStr = activeApyNum.toFixed(2);
 
     // useVaultState: on-chain vault data (totalAssets, assetDecimals)

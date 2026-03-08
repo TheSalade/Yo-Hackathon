@@ -34,7 +34,7 @@ export function VaultCard({ vault }: VaultCardProps) {
     const { vaults } = useVaults();
     const statItem = vaults?.find(v => v.id === vault.symbol);
     const yieldRaw = statItem?.yield?.['7d'] ?? statItem?.yield?.['30d'];
-    const activeApyNum = yieldRaw ? Number(yieldRaw) * 100 : meta.apy;
+    const activeApyNum = yieldRaw ? Number(yieldRaw) : meta.apy;
     const activeApyStr = activeApyNum.toFixed(2);
 
     // Format TVL
