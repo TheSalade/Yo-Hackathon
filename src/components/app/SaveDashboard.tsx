@@ -172,16 +172,16 @@ export function SaveDashboard() {
     const activeApyStr = activeApyNum.toFixed(2);
 
     // useVaultState: on-chain vault data (totalAssets, assetDecimals)
-    const { vaultState, isLoading: tvlLoading } = useVaultState(activeId);
+    const { vaultState, isLoading: tvlLoading, refetch: refetchVaultState } = useVaultState(activeId);
 
     // useVaultHistory: APY & TVL timeseries for the chart
     const { yieldHistory, tvlHistory } = useVaultHistory(activeId);
 
     // useUserPosition: user's shares & assets in this vault
-    const { position: userPos } = useUserPosition(activeId, address);
+    const { position: userPos, refetch: refetchUserPos } = useUserPosition(activeId, address);
 
     const { shares: previewShares } = usePreviewDeposit(activeId, debouncedAmt);
-    const { shares: ownedShares } = useShareBalance(activeId, address);
+    const { shares: ownedShares, refetch: refetchShares } = useShareBalance(activeId, address);
 
     // Token addresses — use Base (8453) first, fallback to Ethereum mainnet (1)
     // We get them from the SDK vault config via getAllVaults()
@@ -228,13 +228,19 @@ export function SaveDashboard() {
         setYodActive(true);
         setTxStep('success');
         setAmountStr('');
-    }, [depDone]);
+        refetchUserPos();
+        refetchShares();
+        refetchVaultState();
+    }, [depDone, refetchUserPos, refetchShares, refetchVaultState]);
 
     useEffect(() => {
         if (!redDone) return;
         setTxStep('idle');
         setAmountStr('');
-    }, [redDone]);
+        refetchUserPos();
+        refetchShares();
+        refetchVaultState();
+    }, [redDone, refetchUserPos, refetchShares, refetchVaultState]);
 
     const handleDeposit = useCallback(async () => {
         if (!parsedAmt) return;

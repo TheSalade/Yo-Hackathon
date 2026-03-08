@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAccount, useChainId, useSwitchChain } from 'wagmi';
 import { parseUnits, formatUnits } from 'viem';
-import { useAllowance, useApprove, useDeposit, usePreviewDeposit } from '@yo-protocol/react';
+import { useAllowance, useApprove, useDeposit, usePreviewDeposit, useUserPosition, useVaultState, useShareBalance } from '@yo-protocol/react';
 import type { VaultConfig } from '@yo-protocol/core';
 import { VAULT_META } from '@/lib/constants';
 import { YOdAnimation } from './YOdAnimation';
@@ -65,13 +65,21 @@ export function DepositModal({ vault, onClose }: DepositModalProps) {
         onError: (e) => { setErrorMsg(e.message || 'Deposit failed'); setStep('error'); },
     });
 
-    // When deposit succeeds → trigger YO'd
+    // Hook into global queries to force refresh on success
+    const { refetch: refetchUserPos } = useUserPosition(vault.symbol, address);
+    const { refetch: refetchVaultState } = useVaultState(vault.symbol);
+    const { refetch: refetchShares } = useShareBalance(vault.symbol, address);
+
+    // When deposit succeeds → trigger YO'd and refetch balances
     useEffect(() => {
         if (depositSuccess) {
             setStep('done');
             setYodActive(true);
+            refetchUserPos();
+            refetchVaultState();
+            refetchShares();
         }
-    }, [depositSuccess]);
+    }, [depositSuccess, refetchUserPos, refetchVaultState, refetchShares]);
 
     const sharesDisplay = previewShares
         ? Number(formatUnits(previewShares, decimals)).toFixed(4)

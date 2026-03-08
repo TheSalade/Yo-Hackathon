@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAccount, useChainId, useSwitchChain } from 'wagmi';
 import { formatUnits, parseUnits } from 'viem';
-import { useRedeem, useShareBalance } from '@yo-protocol/react';
+import { useRedeem, useShareBalance, useUserPosition, useVaultState } from '@yo-protocol/react';
 import type { VaultConfig } from '@yo-protocol/core';
 import { VAULT_META } from '@/lib/constants';
 
@@ -33,7 +33,9 @@ export function WithdrawModal({ vault, onClose }: WithdrawModalProps) {
         : undefined;
 
     // useShareBalance(vault, account) → { shares }
-    const { shares: shareBalance } = useShareBalance(vault.symbol, address);
+    const { shares: shareBalance, refetch: refetchShares } = useShareBalance(vault.symbol, address);
+    const { refetch: refetchUserPos } = useUserPosition(vault.symbol, address);
+    const { refetch: refetchVaultState } = useVaultState(vault.symbol);
     const maxShares = shareBalance
         ? Number(formatUnits(shareBalance, decimals)).toFixed(4)
         : '0';
@@ -50,8 +52,13 @@ export function WithdrawModal({ vault, onClose }: WithdrawModalProps) {
     });
 
     useEffect(() => {
-        if (redeemSuccess) setStep('done');
-    }, [redeemSuccess]);
+        if (redeemSuccess) {
+            setStep('done');
+            refetchShares();
+            refetchUserPos();
+            refetchVaultState();
+        }
+    }, [redeemSuccess, refetchShares, refetchUserPos, refetchVaultState]);
 
     const handleConfirm = async () => {
         if (!parsedShares) return;
