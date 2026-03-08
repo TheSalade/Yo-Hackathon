@@ -60,6 +60,13 @@ body.custom-cursor {
   transform: translate(-50%, -50%);
 }
 
+/* Recharts overrides */
+.recharts-wrapper,
+.recharts-surface,
+.recharts-responsive-container {
+  outline: none !important;
+}
+
 /* Noise overlay */
 .noise-overlay {
   position: fixed;
