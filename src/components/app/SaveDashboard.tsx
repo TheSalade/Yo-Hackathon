@@ -3,11 +3,13 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAccount } from 'wagmi';
 import { formatUnits, parseUnits } from 'viem';
+import { AreaChart, Area, ResponsiveContainer, Tooltip } from 'recharts';
 import type { VaultId } from '@yo-protocol/core';
 import {
     useVaultState,
     useUserPosition,
     useVaults,
+    useVaultHistory,
     usePreviewDeposit,
     useAllowance,
     useApprove,
@@ -60,46 +62,26 @@ const CATEGORIES: { title: string; vaults: VaultDef[] }[] = [
 
 const ALL_VAULTS: VaultDef[] = CATEGORIES.flatMap(c => c.vaults);
 
-// ─── APY Sparkline (100 % client-side, matches HTML chart logic) ──────────────
+// ─── Custom Tooltip for Chart ──────────────────────────────────────────────────
 
-function ApyChart({ seed }: { seed: number }) {
-    const [paths, setPaths] = useState({ area: '', line: '' });
+const ChartTooltip = ({ active, payload, label, metric }: any) => {
+    if (active && payload && payload.length) {
+        const val = payload[0].value;
+        const formatted = metric === 'APY'
+            ? `${val.toFixed(2)}%`
+            : `$${val >= 1e6 ? (val / 1e6).toFixed(2) + 'M' : val >= 1e3 ? (val / 1e3).toFixed(2) + 'K' : val.toFixed(2)}`;
 
-    useEffect(() => {
-        const W = 600, H = 120, PTS = 30;
-        const vals: number[] = [];
-        let v = 4.0 + seed * 0.3;
-        for (let i = 0; i < PTS; i++) {
-            v += (Math.random() - 0.48) * 0.15;
-            v = Math.max(3, Math.min(6, v));
-            vals.push(v);
-        }
-        const mn = Math.min(...vals) - 0.2;
-        const mx = Math.max(...vals) + 0.2;
-        const px = (i: number) => (i / (PTS - 1)) * W;
-        const py = (vv: number) => H - ((vv - mn) / (mx - mn)) * (H - 20) - 10;
-
-        let d = `M ${px(0)} ${py(vals[0])}`;
-        for (let i = 1; i < PTS; i++) {
-            const cx = (px(i) + px(i - 1)) / 2;
-            d += ` C ${cx} ${py(vals[i - 1])},${cx} ${py(vals[i])},${px(i)} ${py(vals[i])}`;
-        }
-        setPaths({ area: `${d} L ${px(PTS - 1)} ${H} L ${px(0)} ${H} Z`, line: d });
-    }, [seed]);
-
-    return (
-        <svg viewBox="0 0 600 120" preserveAspectRatio="none" style={{ width: '100%', height: '100%', overflow: 'visible' }}>
-            <defs>
-                <linearGradient id="cg" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#00e87a" stopOpacity={0.15} />
-                    <stop offset="100%" stopColor="#00e87a" stopOpacity={0} />
-                </linearGradient>
-            </defs>
-            <path d={paths.area} fill="url(#cg)" />
-            <path d={paths.line} fill="none" stroke="#00e87a" strokeWidth={1.5} strokeLinecap="round" />
-        </svg>
-    );
-}
+        return (
+            <div style={{ background: '#1a1a1a', border: '1px solid #333', padding: '8px 12px', borderRadius: 8, fontSize: 12, color: '#f5f4f0', fontFamily: 'Syne, sans-serif' }}>
+                <div style={{ color: '#888', marginBottom: 4 }}>{label}</div>
+                <div style={{ fontWeight: 700, color: payload[0].color }}>
+                    {formatted}
+                </div>
+            </div>
+        );
+    }
+    return null;
+};
 
 // ─── Custom RAF cursor (matches HTML cursor logic) ────────────────────────────
 
@@ -162,8 +144,8 @@ export function SaveDashboard() {
     const meta = VAULT_META[activeId];
 
     // Chart
-    const [chartSeed, setChartSeed] = useState(0);
-    const [chartTab, setChartTab] = useState('7D');
+    const [chartTab, setChartTab] = useState('30D');
+    const [metricTab, setMetricTab] = useState<'APY' | 'TVL'>('APY');
 
     // Panel
     const [panelMode, setPanelMode] = useState<'deposit' | 'withdraw'>('deposit');
@@ -193,6 +175,9 @@ export function SaveDashboard() {
 
     // useVaultState: on-chain vault data (totalAssets, assetDecimals)
     const { vaultState, isLoading: tvlLoading } = useVaultState(activeId);
+
+    // useVaultHistory: APY & TVL timeseries for the chart
+    const { yieldHistory, tvlHistory } = useVaultHistory(activeId);
 
     // useUserPosition: user's shares & assets in this vault
     const { position: userPos } = useUserPosition(activeId, address);
@@ -300,6 +285,18 @@ export function SaveDashboard() {
         ? Number(formatUnits(userPos.shares, decimals))
         : 0;
 
+    // ── Chart Data Calculation ──
+    const chartData = (() => {
+        const history = metricTab === 'APY' ? yieldHistory : tvlHistory;
+        if (!history || history.length === 0) return [];
+        const days = chartTab === '7D' ? 7 : chartTab === '30D' ? 30 : 90;
+        return history.slice(-days).map(d => ({
+            date: new Date(d.timestamp * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+            value: Number(d.value)
+        }));
+    })();
+    const chartColor = metricTab === 'APY' ? '#00e87a' : '#d4f500';
+
     const previewYoTokens = previewShares
         ? Number(formatUnits(previewShares, decimals)).toFixed(4)
         : (amountNum * 0.9997).toFixed(4);
@@ -315,7 +312,6 @@ export function SaveDashboard() {
         setAmountStr('');
         setErrMsg('');
         setTxStep('idle');
-        setChartSeed(s => s + 1);
     };
 
     // ── Icon CSS map ──
@@ -480,16 +476,33 @@ export function SaveDashboard() {
                         </div>
                     </div>
 
-                    {/* APY Chart */}
+                    {/* Metrics Chart */}
                     <div style={{ background: '#141414', border: S.border, borderRadius: 20, padding: 24 }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-                            <div style={{ ...S.syne, fontSize: 14, fontWeight: 700 }}>APY History</div>
+                            <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                                <div style={{ ...S.syne, fontSize: 14, fontWeight: 700 }}>History</div>
+                                <div style={{ display: 'flex', gap: 4, background: 'rgba(255,255,255,0.05)', padding: 4, borderRadius: 8 }}>
+                                    {(['APY', 'TVL'] as const).map(m => (
+                                        <button key={m}
+                                            onClick={() => setMetricTab(m)}
+                                            style={{
+                                                fontSize: 11, padding: '4px 10px', borderRadius: 6,
+                                                background: metricTab === m ? '#333' : 'transparent',
+                                                color: metricTab === m ? '#fff' : '#888',
+                                                cursor: 'pointer', ...S.dm, fontWeight: 600, border: 'none', transition: 'all 0.2s'
+                                            }}>
+                                            {m}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
                             <div style={{ display: 'flex', gap: 4 }}>
                                 {['7D', '30D', '90D'].map(t => {
                                     const a = chartTab === t;
                                     return (
                                         <button key={t} className={`chart-tab ${a ? 'ctab-active' : ''}`}
-                                            onClick={() => { setChartTab(t); setChartSeed(s => s + 1); }}
+                                            onClick={() => setChartTab(t)}
                                             style={{ fontSize: 11, padding: '5px 12px', borderRadius: 100, background: a ? '#1e1e1e' : 'none', border: `1px solid ${a ? '#1e1e1e' : 'transparent'}`, color: a ? '#f5f4f0' : '#555', cursor: 'pointer', ...S.dm, transition: 'all 0.2s' }}>
                                             {t}
                                         </button>
@@ -497,8 +510,26 @@ export function SaveDashboard() {
                                 })}
                             </div>
                         </div>
-                        <div style={{ height: 120 }}>
-                            <ApyChart seed={chartSeed} />
+                        <div style={{ height: 140 }}>
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={chartData}>
+                                    <defs>
+                                        <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stopColor={chartColor} stopOpacity={0.2} />
+                                            <stop offset="100%" stopColor={chartColor} stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <Tooltip content={<ChartTooltip metric={metricTab} />} cursor={{ stroke: '#333', strokeWidth: 1, strokeDasharray: '4 4' }} />
+                                    <Area
+                                        type="monotone"
+                                        dataKey="value"
+                                        stroke={chartColor}
+                                        strokeWidth={2}
+                                        fill="url(#chartGradient)"
+                                        isAnimationActive={false}
+                                    />
+                                </AreaChart>
+                            </ResponsiveContainer>
                         </div>
                     </div>
 
