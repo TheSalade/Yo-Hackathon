@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAccount } from 'wagmi';
+import { useAccount, useChainId, useSwitchChain } from 'wagmi';
 import { formatUnits, parseUnits } from 'viem';
 import { useRedeem, useShareBalance } from '@yo-protocol/react';
 import type { VaultConfig } from '@yo-protocol/core';
@@ -16,7 +16,12 @@ type Step = 'input' | 'redeeming' | 'done' | 'error';
 
 export function WithdrawModal({ vault, onClose }: WithdrawModalProps) {
     const { address } = useAccount();
+    const chainId = useChainId();
+    const { switchChain } = useSwitchChain();
     const meta = VAULT_META[vault.symbol];
+
+    const supportedChains = vault.chains as number[];
+    const isWrongChain = supportedChains.length > 0 && !supportedChains.includes(chainId);
 
     const [amount, setAmount] = useState('');
     const [step, setStep] = useState<Step>('input');
@@ -114,14 +119,20 @@ export function WithdrawModal({ vault, onClose }: WithdrawModalProps) {
                             <button onClick={onClose} style={{ flex: 1, background: '#1a1a1a', color: '#888', fontFamily: 'Syne, sans-serif', fontWeight: 600, padding: '14px', borderRadius: '12px', border: '1px solid #2a2a2a', cursor: 'pointer', fontSize: '14px' }}>
                                 Cancel
                             </button>
-                            <button
-                                id="withdraw-confirm-btn"
-                                onClick={handleConfirm}
-                                disabled={!parsedShares}
-                                style={{ flex: 2, background: parsedShares ? '#f5f4f0' : '#1a1a1a', color: parsedShares ? '#0a0a0a' : '#555', fontFamily: 'Syne, sans-serif', fontWeight: 800, padding: '14px', borderRadius: '12px', border: 'none', cursor: parsedShares ? 'pointer' : 'not-allowed', fontSize: '15px', transition: 'all 0.2s' }}
-                            >
-                                Request Redeem
-                            </button>
+                            {isWrongChain ? (
+                                <button onClick={() => switchChain({ chainId: supportedChains[0] as 1 | 8453 })} style={{ flex: 2, background: '#333', color: '#f5f4f0', fontFamily: 'Syne, sans-serif', fontWeight: 800, padding: '14px', borderRadius: '12px', border: '1px solid #555', cursor: 'pointer', fontSize: '15px' }}>
+                                    Switch Network
+                                </button>
+                            ) : (
+                                <button
+                                    id="withdraw-confirm-btn"
+                                    onClick={handleConfirm}
+                                    disabled={!parsedShares}
+                                    style={{ flex: 2, background: parsedShares ? '#f5f4f0' : '#1a1a1a', color: parsedShares ? '#0a0a0a' : '#555', fontFamily: 'Syne, sans-serif', fontWeight: 800, padding: '14px', borderRadius: '12px', border: 'none', cursor: parsedShares ? 'pointer' : 'not-allowed', fontSize: '15px', transition: 'all 0.2s' }}
+                                >
+                                    Request Redeem
+                                </button>
+                            )}
                         </div>
                     </>
                 )}

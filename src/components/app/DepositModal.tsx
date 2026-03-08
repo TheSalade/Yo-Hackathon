@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAccount } from 'wagmi';
+import { useAccount, useChainId, useSwitchChain } from 'wagmi';
 import { parseUnits, formatUnits } from 'viem';
 import { useAllowance, useApprove, useDeposit, usePreviewDeposit } from '@yo-protocol/react';
 import type { VaultConfig } from '@yo-protocol/core';
@@ -17,6 +17,8 @@ type Step = 'input' | 'preview' | 'approving' | 'depositing' | 'done' | 'error';
 
 export function DepositModal({ vault, onClose }: DepositModalProps) {
     const { address } = useAccount();
+    const chainId = useChainId();
+    const { switchChain } = useSwitchChain();
     const meta = VAULT_META[vault.symbol];
 
     const [amount, setAmount] = useState('');
@@ -33,7 +35,10 @@ export function DepositModal({ vault, onClose }: DepositModalProps) {
     const { shares: previewShares } = usePreviewDeposit(vault.symbol, parsedAmount);
 
     // Check allowance: useAllowance(token, spender, owner)
-    const assetAddress = vault.underlying.address[8453] ?? vault.underlying.address[1];
+    const supportedChains = vault.chains as number[];
+    const isWrongChain = supportedChains.length > 0 && !supportedChains.includes(chainId);
+    const targetChain = supportedChains.includes(chainId) ? chainId : (supportedChains[0] || 8453);
+    const assetAddress = vault.underlying.address[targetChain as keyof typeof vault.underlying.address] ?? '0x';
     const { allowance: allowanceData } = useAllowance(assetAddress, vault.address, address);
     const currentAllowance = allowanceData?.allowance ?? BigInt(0);
     const needsApproval = parsedAmount !== undefined && currentAllowance < parsedAmount;
@@ -85,7 +90,7 @@ export function DepositModal({ vault, onClose }: DepositModalProps) {
                 await approve(parsedAmount);
             }
             setStep('depositing');
-            await deposit({ token: assetAddress, amount: parsedAmount, chainId: 8453 });
+            await deposit({ token: assetAddress, amount: parsedAmount, chainId });
         } catch (e: unknown) {
             const err = e as Error;
             setErrorMsg(err.message || 'Transaction failed');
@@ -204,9 +209,15 @@ export function DepositModal({ vault, onClose }: DepositModalProps) {
                             <button onClick={() => setStep('input')} style={{ flex: 1, background: '#1a1a1a', color: '#888', fontFamily: 'Syne, sans-serif', fontWeight: 600, padding: '14px', borderRadius: '12px', border: '1px solid #2a2a2a', cursor: 'pointer', fontSize: '14px' }}>
                                 Back
                             </button>
-                            <button id="deposit-confirm-btn" onClick={handleConfirm} style={{ flex: 2, background: '#d4f500', color: '#0a0a0a', fontFamily: 'Syne, sans-serif', fontWeight: 800, padding: '14px', borderRadius: '12px', border: 'none', cursor: 'pointer', fontSize: '15px' }}>
-                                {needsApproval ? '⚡ Approve & Deposit' : '⚡ Confirm Deposit'}
-                            </button>
+                            {isWrongChain ? (
+                                <button onClick={() => switchChain({ chainId: supportedChains[0] as 1 | 8453 })} style={{ flex: 2, background: '#333', color: '#f5f4f0', fontFamily: 'Syne, sans-serif', fontWeight: 800, padding: '14px', borderRadius: '12px', border: '1px solid #555', cursor: 'pointer', fontSize: '15px' }}>
+                                    Switch Network
+                                </button>
+                            ) : (
+                                <button id="deposit-confirm-btn" onClick={handleConfirm} style={{ flex: 2, background: '#d4f500', color: '#0a0a0a', fontFamily: 'Syne, sans-serif', fontWeight: 800, padding: '14px', borderRadius: '12px', border: 'none', cursor: 'pointer', fontSize: '15px' }}>
+                                    {needsApproval ? '⚡ Approve & Deposit' : '⚡ Confirm Deposit'}
+                                </button>
+                            )}
                         </div>
                     </>
                 )}

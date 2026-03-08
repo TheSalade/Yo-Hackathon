@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useAccount } from 'wagmi';
+import { useAccount, useChainId, useSwitchChain } from 'wagmi';
 import { formatUnits, parseUnits } from 'viem';
 import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis } from 'recharts';
 import type { VaultId } from '@yo-protocol/core';
@@ -43,19 +43,15 @@ const CATEGORIES: { title: string; vaults: VaultDef[] }[] = [
         vaults: [
             { id: 'yoUSD', label: 'USD', asset: 'USDC', chain: 'Base', iconKey: 'usd', symbol: '$' },
             { id: 'yoEUR', label: 'EUR', asset: 'EURC', chain: 'Base', iconKey: 'eur', symbol: '€' },
+            { id: 'yoUSDT', label: 'USDT', asset: 'USDT', chain: 'Ethereum', iconKey: 'usdt', symbol: '₮' },
         ],
     },
     {
         title: 'Crypto',
         vaults: [
-            { id: 'yoETH', label: 'ETH', asset: 'WETH', chain: 'Ethereum', iconKey: 'eth', symbol: 'Ξ' },
+            { id: 'yoETH', label: 'ETH', asset: 'WETH', chain: 'Ethereum, Base', iconKey: 'eth', symbol: 'Ξ' },
             { id: 'yoBTC', label: 'BTC', asset: 'cbBTC', chain: 'Base', iconKey: 'btc', symbol: '₿' },
-        ],
-    },
-    {
-        title: 'Real World Assets',
-        vaults: [
-            { id: 'yoGOLD', label: 'AU', asset: 'XAUt', chain: 'Ethereum', iconKey: 'gold', symbol: 'Au' },
+            { id: 'yoGOLD', label: 'GOLD', asset: 'XAUt', chain: 'Ethereum', iconKey: 'gold', symbol: '🥇' },
         ],
     },
 ];
@@ -137,6 +133,8 @@ function VaultApyBadge({ id }: { id: VaultId }) {
 
 export function SaveDashboard() {
     const { address, isConnected } = useAccount();
+    const chainId = useChainId();
+    const { switchChain } = useSwitchChain();
 
     // Active vault
     const [activeId, setActiveId] = useState<VaultId>('yoUSD');
@@ -189,18 +187,26 @@ export function SaveDashboard() {
     // We get them from the SDK vault config via getAllVaults()
     const [tokenAddr, setTokenAddr] = useState<`0x${string}`>('0x');
     const [vaultAddr, setVaultAddr] = useState<`0x${string}`>('0x');
+    const [supportedChains, setSupportedChains] = useState<number[]>([]);
 
     useEffect(() => {
         // Dynamically import to avoid SSR issues
         import('@yo-protocol/core').then(({ getAllVaults }) => {
             const cfg = getAllVaults().find(v => v.symbol === activeId);
             if (!cfg) return;
-            const ta = (cfg.underlying.address[8453] ?? cfg.underlying.address[1] ?? '0x') as `0x${string}`;
+            const chains = cfg.chains as number[];
+            setSupportedChains(chains);
+
+            // Prefer current chain if supported, else fallback to the target chain (Base > first available)
+            const fallbackChain = chains.includes(8453) ? 8453 : chains[0];
+            const resolvedChain = chains.includes(chainId) ? chainId : fallbackChain;
+
+            const ta = (cfg.underlying.address[resolvedChain as keyof typeof cfg.underlying.address] ?? '0x') as `0x${string}`;
             const va = cfg.address as `0x${string}`;
             setTokenAddr(ta);
             setVaultAddr(va);
         });
-    }, [activeId]);
+    }, [activeId, chainId]);
 
     const { allowance: allowanceRes } = useAllowance(tokenAddr, vaultAddr, address);
     const currentAllowance = allowanceRes?.allowance ?? BigInt(0);
@@ -239,12 +245,12 @@ export function SaveDashboard() {
                 await approve(parsedAmt);
             }
             setTxStep('depositing');
-            await deposit({ token: tokenAddr, amount: parsedAmt, chainId: 8453 });
-        } catch (e: any) {
-            setErrMsg(e?.message ?? 'Transaction failed');
+            await deposit({ token: tokenAddr, amount: parsedAmt, chainId });
+        } catch (e: unknown) {
+            setErrMsg((e as Error)?.message ?? 'Transaction failed');
             setTxStep('error');
         }
-    }, [parsedAmt, needsApproval, approve, deposit, tokenAddr]);
+    }, [parsedAmt, needsApproval, approve, deposit, tokenAddr, chainId]);
 
     const handleWithdraw = useCallback(async () => {
         if (!ownedShares) return;
@@ -306,12 +312,31 @@ export function SaveDashboard() {
 
     const shortAddr = address ? `${address.slice(0, 6)}...${address.slice(-4)}` : '—';
 
+    // Determine chain status
+    const isWrongChain = supportedChains.length > 0 && !supportedChains.includes(chainId);
+
     // Switch vault
     const selectVault = (v: VaultDef) => {
         setActiveId(v.id);
+        setPanelMode('deposit');
         setAmountStr('');
-        setErrMsg('');
         setTxStep('idle');
+        setErrMsg('');
+
+        // Ensure synchronous execution for wallet popup (avoids Rabby/MetaMask anti-spam blocks)
+        const chainMapping: Record<string, number> = {
+            'Base': 8453,
+            'Ethereum': 1
+        };
+        const supportedChainsStr = v.chain.split(', ');
+        const supportedChainIds = supportedChainsStr.map(c => chainMapping[c]).filter(Boolean);
+
+        if (supportedChainIds.length > 0 && !supportedChainIds.includes(chainId)) {
+            const targetChain = supportedChainIds.includes(8453) ? 8453 : supportedChainIds[0];
+            if (switchChain) {
+                switchChain({ chainId: targetChain as 1 | 8453 }, { onError: () => { } });
+            }
+        }
     };
 
     // ── Icon CSS map ──
@@ -656,22 +681,37 @@ export function SaveDashboard() {
                     )}
 
                     {/* CTA button */}
-                    <button
-                        className="deposit-btn"
-                        disabled={btnDisabled}
-                        onClick={panelMode === 'deposit' ? handleDeposit : handleWithdraw}
-                        style={{
-                            width: '100%', padding: 16,
-                            background: '#d4f500', color: '#0a0a0a',
-                            ...S.syne, fontWeight: 800, fontSize: 15,
-                            border: 'none', borderRadius: 16, cursor: btnDisabled ? 'not-allowed' : 'pointer',
-                            letterSpacing: '0.02em',
-                            transition: 'transform 0.15s, box-shadow 0.2s',
-                            position: 'relative', overflow: 'hidden',
-                            opacity: btnDisabled ? 0.5 : 1,
-                        }}>
-                        {btnLabel}
-                    </button>
+                    {isWrongChain ? (
+                        <button
+                            className="deposit-btn"
+                            onClick={() => switchChain({ chainId: supportedChains[0] as 1 | 8453 })}
+                            style={{
+                                width: '100%', padding: 16,
+                                background: '#333', color: '#f5f4f0',
+                                ...S.syne, fontWeight: 800, fontSize: 15,
+                                border: '1px solid #555', borderRadius: 16, cursor: 'pointer',
+                                letterSpacing: '0.02em', transition: 'all 0.2s',
+                            }}>
+                            Switch Network
+                        </button>
+                    ) : (
+                        <button
+                            className="deposit-btn"
+                            disabled={btnDisabled}
+                            onClick={panelMode === 'deposit' ? handleDeposit : handleWithdraw}
+                            style={{
+                                width: '100%', padding: 16,
+                                background: '#d4f500', color: '#0a0a0a',
+                                ...S.syne, fontWeight: 800, fontSize: 15,
+                                border: 'none', borderRadius: 16, cursor: btnDisabled ? 'not-allowed' : 'pointer',
+                                letterSpacing: '0.02em',
+                                transition: 'transform 0.15s, box-shadow 0.2s',
+                                position: 'relative', overflow: 'hidden',
+                                opacity: btnDisabled ? 0.5 : 1,
+                            }}>
+                            {btnLabel}
+                        </button>
+                    )}
 
                     {/* Security note */}
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 11, color: '#444', lineHeight: 1.6 }}>
