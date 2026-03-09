@@ -17,9 +17,9 @@ YOLO transforms the highly-technical, anxiety-inducing DeFi experience into a jo
 
 ```mermaid
 graph TD
-    User([User]) -->|Interacts| UI[YOLO Frontend - Next.js]
-    UI -->|Uses| SDK[@yo-protocol/react Hooks]
-    SDK -->|Read/Write| YO[YO Protocol Vaults]
+    User([User]) -->|Interacts| UI["YOLO Frontend - Next.js"]
+    UI -->|Uses| SDK["@yo-protocol/react Hooks"]
+    SDK -->|Read/Write| YO["YO Protocol Vaults"]
     YO -->|Strategy| Base[Base]
     YO -->|Strategy| ETH[Ethereum]
     YO -->|Strategy| Arb[Arbitrum]
