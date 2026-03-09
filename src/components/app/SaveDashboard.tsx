@@ -1,20 +1,18 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useAccount, useChainId, useSwitchChain } from 'wagmi';
+import { useAccount, useChainId, useSwitchChain, useBalance, useReadContract } from 'wagmi';
 import { formatUnits, parseUnits } from 'viem';
 import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis } from 'recharts';
-import type { VaultId } from '@yo-protocol/core';
+import { type VaultId, type VaultConfig, getAllVaults } from '@yo-protocol/core';
 import {
     useVaultState,
-    useUserPosition,
     useVaults,
     useVaultHistory,
     usePreviewDeposit,
     useAllowance,
     useApprove,
     useDeposit,
-    useShareBalance,
     useRedeem,
 } from '@yo-protocol/react';
 import Link from 'next/link';
@@ -148,18 +146,9 @@ export function SaveDashboard() {
     // Panel
     const [panelMode, setPanelMode] = useState<'deposit' | 'withdraw'>('deposit');
 
-    // Amount
+    // We will parse `amountStr` later after fetching `vaultState` for decimals.
     const [amountStr, setAmountStr] = useState('');
     const amountNum = parseFloat(amountStr) || 0;
-    const decimals = 6; // USDC / most tokens; refine per vault if needed
-    const parsedAmt = amountNum > 0 ? parseUnits(amountStr, decimals) : undefined;
-
-    // Debounced amount for preview (300 ms)
-    const [debouncedAmt, setDebouncedAmt] = useState<bigint | undefined>(undefined);
-    useEffect(() => {
-        const t = setTimeout(() => setDebouncedAmt(parsedAmt), 300);
-        return () => clearTimeout(t);
-    }, [parsedAmt]);
 
     // ── SDK hooks ──
     // useVaults: all vaults summary data (APY, TVL) from the API
@@ -177,36 +166,81 @@ export function SaveDashboard() {
     // useVaultHistory: APY & TVL timeseries for the chart
     const { yieldHistory, tvlHistory } = useVaultHistory(activeId);
 
-    // useUserPosition: user's shares & assets in this vault
-    const { position: userPos, refetch: refetchUserPos } = useUserPosition(activeId, address);
-
-    const { shares: previewShares } = usePreviewDeposit(activeId, debouncedAmt);
-    const { shares: ownedShares, refetch: refetchShares } = useShareBalance(activeId, address);
-
+    // userPos initialization is moved below to safely consume resolvedChainId and vaultAddr
     // Token addresses — use Base (8453) first, fallback to Ethereum mainnet (1)
     // We get them from the SDK vault config via getAllVaults()
     const [tokenAddr, setTokenAddr] = useState<`0x${string}`>('0x');
     const [vaultAddr, setVaultAddr] = useState<`0x${string}`>('0x');
     const [supportedChains, setSupportedChains] = useState<number[]>([]);
+    const [resolvedChainId, setResolvedChainId] = useState<number | undefined>(undefined);
 
     useEffect(() => {
-        // Dynamically import to avoid SSR issues
-        import('@yo-protocol/core').then(({ getAllVaults }) => {
-            const cfg = getAllVaults().find(v => v.symbol === activeId);
-            if (!cfg) return;
-            const chains = cfg.chains as number[];
-            setSupportedChains(chains);
+        const cfg = getAllVaults().find(v => v.symbol === activeId);
+        if (!cfg) return;
+        const chains = cfg.chains as number[];
+        setSupportedChains(chains);
 
-            // Prefer current chain if supported, else fallback to the target chain (Base > first available)
-            const fallbackChain = chains.includes(8453) ? 8453 : chains[0];
-            const resolvedChain = chains.includes(chainId) ? chainId : fallbackChain;
+        // Prefer current chain if supported, else fallback to the target chain (Base > first available)
+        const fallbackChain = chains.includes(8453) ? 8453 : chains[0];
+        const resolvedChain = chains.includes(chainId) ? chainId : fallbackChain;
+        setResolvedChainId(resolvedChain);
 
-            const ta = (cfg.underlying.address[resolvedChain as keyof typeof cfg.underlying.address] ?? '0x') as `0x${string}`;
-            const va = cfg.address as `0x${string}`;
-            setTokenAddr(ta);
-            setVaultAddr(va);
-        });
+        const ta = (cfg.underlying.address[resolvedChain as keyof typeof cfg.underlying.address] ?? '0x') as `0x${string}`;
+        const va = cfg.address as `0x${string}`;
+        setTokenAddr(ta);
+        setVaultAddr(va);
     }, [activeId, chainId]);
+
+    // Compute decimals and parsed amounts safely
+    const decimals = vaultState?.assetDecimals ?? 6;
+    const parsedAmt = amountNum > 0 ? parseUnits(amountStr, decimals) : undefined;
+
+    const { shares: previewShares } = usePreviewDeposit(activeId, parsedAmt);
+
+    // Bypassing @yo-protocol SDK cross-chain issues by enforcing useReadContract on resolvedChainId.
+    const { data: rawShares, refetch: refetchShares } = useReadContract({
+        address: vaultAddr !== '0x' ? vaultAddr : undefined,
+        abi: [{ inputs: [{ name: 'account', type: 'address' }], name: 'balanceOf', outputs: [{ type: 'uint256' }], stateMutability: 'view', type: 'function' }] as const,
+        functionName: 'balanceOf',
+        args: address ? [address] : undefined,
+        chainId: resolvedChainId as 1 | 8453 | undefined,
+        query: { enabled: vaultAddr !== '0x' && !!address && !!resolvedChainId }
+    });
+
+    const ownedShares = rawShares ?? 0n;
+
+    const { data: rawAssets, refetch: refetchUserAssets } = useReadContract({
+        address: vaultAddr !== '0x' ? vaultAddr : undefined,
+        abi: [{ inputs: [{ name: 'shares', type: 'uint256' }], name: 'convertToAssets', outputs: [{ type: 'uint256' }], stateMutability: 'view', type: 'function' }] as const,
+        functionName: 'convertToAssets',
+        args: [ownedShares],
+        chainId: resolvedChainId as 1 | 8453 | undefined,
+        query: { enabled: vaultAddr !== '0x' && ownedShares > 0n && !!resolvedChainId }
+    });
+
+    const userPos = { shares: ownedShares, assets: rawAssets ?? 0n };
+    const refetchUserPos = useCallback(() => { refetchShares(); refetchUserAssets(); }, [refetchShares, refetchUserAssets]);
+
+    // useBalance: user's held token balance using wagmi directly to force the target network cross-chain
+    const { data: tokenBalanceData, refetch: refetchTokenBalance } = useBalance({
+        address,
+        token: tokenAddr !== '0x' ? tokenAddr : undefined,
+        chainId: resolvedChainId as 1 | 8453 | undefined,
+        query: {
+            enabled: tokenAddr !== '0x' && !!resolvedChainId,
+        }
+    });
+
+    // Evaluate displayable balance string and exact number
+    const availableBalanceLabel = panelMode === 'deposit'
+        ? (tokenBalanceData ? Number(formatUnits(tokenBalanceData.value, tokenBalanceData.decimals)).toLocaleString(undefined, { maximumFractionDigits: 6 }) : '—')
+        : (ownedShares ? Number(formatUnits(ownedShares, vaultState?.assetDecimals ?? 6)).toLocaleString(undefined, { maximumFractionDigits: 6 }) : '—');
+
+    const maxNumberValueStr = panelMode === 'deposit'
+        ? (tokenBalanceData ? formatUnits(tokenBalanceData.value, tokenBalanceData.decimals) : '0')
+        : (ownedShares ? formatUnits(ownedShares, vaultState?.assetDecimals ?? 6) : '0');
+
+    // removed duplicate hooks because they have been moved above.
 
     const { allowance: allowanceRes } = useAllowance(tokenAddr, vaultAddr, address);
     const currentAllowance = allowanceRes?.allowance ?? BigInt(0);
@@ -231,7 +265,8 @@ export function SaveDashboard() {
         refetchUserPos();
         refetchShares();
         refetchVaultState();
-    }, [depDone, refetchUserPos, refetchShares, refetchVaultState]);
+        refetchTokenBalance();
+    }, [depDone, refetchUserPos, refetchShares, refetchVaultState, refetchTokenBalance]);
 
     useEffect(() => {
         if (!redDone) return;
@@ -240,7 +275,8 @@ export function SaveDashboard() {
         refetchUserPos();
         refetchShares();
         refetchVaultState();
-    }, [redDone, refetchUserPos, refetchShares, refetchVaultState]);
+        refetchTokenBalance();
+    }, [redDone, refetchUserPos, refetchShares, refetchVaultState, refetchTokenBalance]);
 
     const handleDeposit = useCallback(async () => {
         if (!parsedAmt) return;
@@ -631,17 +667,24 @@ export function SaveDashboard() {
                             </div>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#555', marginTop: 10 }}>
-                            <span>Balance: <strong style={{ color: '#f5f4f0' }}>—</strong></span>
-                            <button className="max-btn" onClick={() => setAmountStr('2500')} style={{ color: '#d4f500', fontSize: 11, fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', ...S.dm, transition: 'opacity 0.2s' }}>MAX</button>
+                            <span>Balance: <strong style={{ color: '#f5f4f0' }}>{availableBalanceLabel} {panelMode === 'deposit' ? active.asset : active.symbol}</strong></span>
+                            <button className="max-btn" onClick={() => setAmountStr(maxNumberValueStr)} style={{ color: '#d4f500', fontSize: 11, fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', ...S.dm, transition: 'opacity 0.2s' }}>MAX</button>
                         </div>
                     </div>
 
-                    {/* Quick amounts */}
+                    {/* Quick percentages */}
                     <div style={{ display: 'flex', gap: 8 }}>
-                        {[['$100', '100'], ['$500', '500'], ['$1K', '1000'], ['MAX', '2500']].map(([label, val]) => (
-                            <button key={val} className="quick-btn" onClick={() => setAmountStr(val)}
+                        {[25, 50, 75, 100].map((pct) => (
+                            <button key={pct} className="quick-btn" onClick={() => {
+                                const maxNum = parseFloat(maxNumberValueStr);
+                                if (isNaN(maxNum) || maxNum <= 0) return;
+                                const valStr = (maxNum * (pct / 100)).toString();
+                                // if there's e notations from toString due to super small numbers, we parse it nicely
+                                // but for simplicity formatUnits was already done, so we can just set string
+                                setAmountStr(pct === 100 ? maxNumberValueStr : valStr);
+                            }}
                                 style={{ flex: 1, background: '#141414', border: S.border, borderRadius: 10, padding: 9, fontSize: 12, ...S.syne, fontWeight: 700, color: '#888', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'center' }}>
-                                {label}
+                                {pct === 100 ? 'Max' : `${pct}%`}
                             </button>
                         ))}
                     </div>

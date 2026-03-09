@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAccount, useChainId, useSwitchChain } from 'wagmi';
+import { useAccount, useChainId, useSwitchChain, useBalance } from 'wagmi';
 import { parseUnits, formatUnits } from 'viem';
 import { useAllowance, useApprove, useDeposit, usePreviewDeposit, useUserPosition, useVaultState, useShareBalance } from '@yo-protocol/react';
 import type { VaultConfig } from '@yo-protocol/core';
@@ -70,6 +70,16 @@ export function DepositModal({ vault, onClose }: DepositModalProps) {
     const { refetch: refetchVaultState } = useVaultState(vault.symbol);
     const { refetch: refetchShares } = useShareBalance(vault.symbol, address);
 
+    // Evaluate balance
+    const { data: tokenBalanceData, refetch: refetchTokenBalance } = useBalance({
+        address,
+        token: assetAddress !== '0x' ? (assetAddress as `0x${string}`) : undefined,
+        chainId: targetChain as 1 | 8453 | undefined,
+        query: {
+            enabled: assetAddress !== '0x' && !!targetChain,
+        }
+    });
+
     // When deposit succeeds → trigger YO'd and refetch balances
     useEffect(() => {
         if (depositSuccess) {
@@ -78,12 +88,20 @@ export function DepositModal({ vault, onClose }: DepositModalProps) {
             refetchUserPos();
             refetchVaultState();
             refetchShares();
+            refetchTokenBalance();
         }
-    }, [depositSuccess, refetchUserPos, refetchVaultState, refetchShares]);
+    }, [depositSuccess, refetchUserPos, refetchVaultState, refetchShares, refetchTokenBalance]);
 
     const sharesDisplay = previewShares
         ? Number(formatUnits(previewShares, decimals)).toFixed(4)
         : '—';
+
+    const availableBalanceLabel = tokenBalanceData
+        ? Number(formatUnits(tokenBalanceData.value, tokenBalanceData.decimals)).toLocaleString(undefined, { maximumFractionDigits: 6 })
+        : '—';
+    const maxBalanceStr = tokenBalanceData
+        ? formatUnits(tokenBalanceData.value, tokenBalanceData.decimals)
+        : '0';
 
     const handlePreview = () => {
         if (!parsedAmount) return;
@@ -152,6 +170,11 @@ export function DepositModal({ vault, onClose }: DepositModalProps) {
 
                 {step === 'input' && (
                     <>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#888', marginBottom: 8 }}>
+                            <span>Available to deposit</span>
+                            <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, color: '#f5f4f0' }}>{availableBalanceLabel} {meta.underlyingSymbol}</span>
+                        </div>
+
                         <div style={{ background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: '16px', padding: '16px', marginBottom: '16px' }}>
                             <div style={{ fontSize: '11px', color: '#555', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '8px' }}>Amount</div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -167,6 +190,19 @@ export function DepositModal({ vault, onClose }: DepositModalProps) {
                                     {meta.underlyingSymbol}
                                 </div>
                             </div>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
+                            {[25, 50, 75, 100].map((pct) => (
+                                <button key={pct} onClick={() => {
+                                    const maxNum = parseFloat(maxBalanceStr);
+                                    if (isNaN(maxNum) || maxNum <= 0) return;
+                                    setAmount(pct === 100 ? maxBalanceStr : (maxNum * (pct / 100)).toString());
+                                }}
+                                    style={{ flex: 1, background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: 10, padding: 8, fontSize: 13, fontFamily: 'Syne, sans-serif', fontWeight: 600, color: '#888', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'center' }}>
+                                    {pct === 100 ? 'Max' : `${pct}%`}
+                                </button>
+                            ))}
                         </div>
 
                         {previewShares && parsedAmount && (

@@ -100,9 +100,9 @@ export function WithdrawModal({ vault, onClose }: WithdrawModalProps) {
 
                 {step === 'input' && (
                     <>
-                        <div style={{ background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: '12px', padding: '12px 16px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between' }}>
-                            <span style={{ fontSize: '12px', color: '#555' }}>Available shares</span>
-                            <span style={{ fontFamily: 'Syne, sans-serif', fontSize: '13px', fontWeight: 700, color: '#f5f4f0' }}>{maxShares} {vault.symbol}</span>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#888', marginBottom: 8 }}>
+                            <span>Available shares</span>
+                            <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, color: '#f5f4f0' }}>{maxShares} {vault.symbol}</span>
                         </div>
 
                         <div style={{ background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: '16px', padding: '16px', marginBottom: '16px' }}>
@@ -116,10 +116,23 @@ export function WithdrawModal({ vault, onClose }: WithdrawModalProps) {
                                     onChange={e => setAmount(e.target.value)}
                                     style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontFamily: 'Syne, sans-serif', fontSize: '28px', fontWeight: 700, color: '#f5f4f0', letterSpacing: '-1px' }}
                                 />
-                                <button onClick={() => setAmount(maxShares)} style={{ background: 'rgba(212,245,0,0.1)', border: '1px solid rgba(212,245,0,0.2)', borderRadius: '8px', padding: '6px 10px', color: '#d4f500', fontSize: '11px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Syne, sans-serif' }}>
-                                    MAX
-                                </button>
+                                <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '14px', fontWeight: 700, color: '#888', flexShrink: 0 }}>
+                                    {vault.symbol}
+                                </div>
                             </div>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
+                            {[25, 50, 75, 100].map((pct) => (
+                                <button key={pct} onClick={() => {
+                                    const maxNum = parseFloat(maxShares);
+                                    if (isNaN(maxNum) || maxNum <= 0) return;
+                                    setAmount(pct === 100 ? maxShares : (maxNum * (pct / 100)).toString());
+                                }}
+                                    style={{ flex: 1, background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: 10, padding: 8, fontSize: 13, fontFamily: 'Syne, sans-serif', fontWeight: 600, color: '#888', cursor: 'pointer', transition: 'all 0.2s', textAlign: 'center' }}>
+                                    {pct === 100 ? 'Max' : `${pct}%`}
+                                </button>
+                            ))}
                         </div>
 
                         <div style={{ display: 'flex', gap: '12px' }}>
