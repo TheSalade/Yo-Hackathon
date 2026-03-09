@@ -53,7 +53,7 @@ function TotalBalanceCard({ prices }: { prices: Record<string, number> }) {
             {isLoading ? (
                 <div className="skeleton" style={{ height: '48px', width: '200px', marginBottom: '12px' }} />
             ) : (
-                <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 'clamp(32px, 4.5vw, 48px)', fontWeight: 700, color: '#f5f4f0', letterSpacing: '-1px', marginBottom: '12px', lineHeight: 1 }}>
+                <div style={{ fontFamily: 'Outfit, sans-serif', fontSize: 'clamp(32px, 4.5vw, 48px)', fontWeight: 600, color: '#f5f4f0', letterSpacing: '-0.01em', marginBottom: '12px', lineHeight: 1 }}>
                     ${totalUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
             )}
