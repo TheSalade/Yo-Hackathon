@@ -538,7 +538,7 @@ export function SaveDashboard() {
                             ].map(s => (
                                 <div key={s.label} style={{ background: 'rgba(255,255,255,0.03)', border: S.border, borderRadius: 16, padding: 18 }}>
                                     <div style={{ fontSize: 10, color: '#555', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>{s.label}</div>
-                                    <div style={{ ...S.syne, fontSize: 22, fontWeight: 800, letterSpacing: '-0.5px', color: s.color }}>{s.val}</div>
+                                    <div style={{ ...S.dm, fontSize: 20, fontWeight: 700, letterSpacing: '-0.2px', color: s.color }}>{s.val}</div>
                                     <div style={{ fontSize: 11, color: '#555', marginTop: 4 }}>{s.sub}</div>
                                 </div>
                             ))}
