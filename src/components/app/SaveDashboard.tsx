@@ -271,31 +271,8 @@ export function SaveDashboard() {
     const [yodAmt, setYodAmt] = useState('');
 
     const { approve } = useApprove({ token: tokenAddr, spender: vaultAddr, onError: (e: any) => { setErrMsg(parseError(e)); setTxStep('error'); } });
-    const { deposit, isSuccess: depDone } = useDeposit({ vault: activeId, onError: (e: any) => { setErrMsg(parseError(e)); setTxStep('error'); } });
-    const { redeem, isSuccess: redDone } = useRedeem({ vault: activeId, onError: (e: any) => { setErrMsg(parseError(e)); setTxStep('error'); } });
-
-    useEffect(() => {
-        if (!depDone) return;
-        setYodAmt(amountStr);
-        setYodActive(true);
-        setTxStep('success');
-        setAmountStr('');
-        refetchUserPos();
-        refetchShares();
-        refetchVaultState();
-        refetchTokenBalance();
-    }, [depDone, refetchUserPos, refetchShares, refetchVaultState, refetchTokenBalance]);
-
-    useEffect(() => {
-        if (!redDone) return;
-        setTxStep('idle');
-        setAmountStr('');
-        refetchUserPos();
-        refetchShares();
-        refetchVaultState();
-        refetchTokenBalance();
-    }, [redDone, refetchUserPos, refetchShares, refetchVaultState, refetchTokenBalance]);
-
+    const { deposit } = useDeposit({ vault: activeId, onError: (e: any) => { setErrMsg(parseError(e)); setTxStep('error'); } });
+    const { redeem } = useRedeem({ vault: activeId, onError: (e: any) => { setErrMsg(parseError(e)); setTxStep('error'); } });
     const handleDeposit = useCallback(async () => {
         if (!parsedAmt) return;
         setErrMsg('');
@@ -306,11 +283,21 @@ export function SaveDashboard() {
             }
             setTxStep('depositing');
             await deposit({ token: tokenAddr, amount: parsedAmt, chainId });
+
+            // On Success
+            setYodAmt(amountStr);
+            setYodActive(true);
+            setTxStep('idle'); // Changed from 'success' to 'idle' for consistency with withdraw
+            setAmountStr('');
+            refetchUserPos();
+            refetchShares();
+            refetchVaultState();
+            refetchTokenBalance();
         } catch (e: unknown) {
             setErrMsg(parseError(e));
             setTxStep('error');
         }
-    }, [parsedAmt, needsApproval, approve, deposit, tokenAddr, chainId]);
+    }, [parsedAmt, needsApproval, approve, deposit, tokenAddr, chainId, amountStr, refetchUserPos, refetchShares, refetchVaultState, refetchTokenBalance]);
 
     const handleWithdraw = useCallback(async () => {
         if (!ownedShares) return;
@@ -318,6 +305,14 @@ export function SaveDashboard() {
         try {
             setTxStep('withdrawing');
             await redeem(ownedShares);
+
+            // On Success
+            setTxStep('idle');
+            setAmountStr('');
+            refetchUserPos();
+            refetchShares();
+            refetchVaultState();
+            refetchTokenBalance();
         } catch (e: any) {
             setErrMsg(parseError(e));
             setTxStep('error');

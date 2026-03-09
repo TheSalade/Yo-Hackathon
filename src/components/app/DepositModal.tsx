@@ -104,18 +104,6 @@ export function DepositModal({ vault, onClose }: DepositModalProps) {
         }
     });
 
-    // When deposit succeeds → trigger YO'd and refetch balances
-    useEffect(() => {
-        if (depositSuccess) {
-            setStep('done');
-            setYodActive(true);
-            refetchUserPos();
-            refetchVaultState();
-            refetchShares();
-            refetchTokenBalance();
-        }
-    }, [depositSuccess, refetchUserPos, refetchVaultState, refetchShares, refetchTokenBalance]);
-
     const sharesDisplay = previewShares
         ? Number(formatUnits(previewShares, decimals)).toFixed(4)
         : '—';
@@ -141,6 +129,15 @@ export function DepositModal({ vault, onClose }: DepositModalProps) {
             }
             setStep('depositing');
             await deposit({ token: assetAddress, amount: parsedAmount, chainId });
+
+            // On Success
+            setYodActive(true);
+            setStep('done');
+            setAmount('');
+            refetchUserPos();
+            refetchVaultState();
+            refetchShares();
+            refetchTokenBalance();
         } catch (e: unknown) {
             setErrorMsg(parseError(e));
             setStep('error');
