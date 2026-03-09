@@ -412,11 +412,11 @@ export function SaveDashboard() {
         border: '1px solid #1e1e1e',
     };
 
-    const btnLabel = txStep === 'approving' ? '⏳ Approving...'
-        : txStep === 'depositing' ? '⏳ Depositing...'
-            : txStep === 'withdrawing' ? '⏳ Withdrawing...'
-                : panelMode === 'deposit' ? '⚡ YO my funds'
-                    : '↓ Withdraw funds';
+    const btnLabel = txStep === 'approving' ? 'Approving...'
+        : txStep === 'depositing' ? 'Depositing...'
+            : txStep === 'withdrawing' ? 'Withdrawing...'
+                : panelMode === 'deposit' ? 'YO my funds'
+                    : 'Withdraw funds';
 
     const btnDisabled = !parsedAmt || ['approving', 'depositing', 'withdrawing'].includes(txStep);
 
@@ -733,7 +733,7 @@ export function SaveDashboard() {
                     {/* Approval hint */}
                     {needsApproval && txStep === 'idle' && (
                         <div style={{ fontSize: 12, color: '#888', textAlign: 'center' }}>
-                            ⚡ Approval required before deposit
+                            Approval required before deposit
                         </div>
                     )}
 

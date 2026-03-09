@@ -216,7 +216,7 @@ function PhoneMockup() {
                             letterSpacing: '0.02em',
                         }}
                     >
-                        ⚡ YO my funds
+                        YO my funds
                     </button>
 
                     {/* Transaction list */}
@@ -282,17 +282,7 @@ export default function LandingPage() {
                 <div style={{ display: 'flex', alignItems: 'center' }}>
                     <img src="/yo/yolo.png" alt="Yolo Logo" style={{ height: 32, width: 'auto' }} />
                 </div>
-                <ul style={{ display: 'flex', alignItems: 'center', gap: '32px', fontSize: '13px', letterSpacing: '0.02em', color: '#888', listStyle: 'none' }}>
-                    <li><a href="#" style={{ color: 'inherit', textDecoration: 'none', transition: 'color 0.2s' }}
-                        onMouseEnter={e => (e.currentTarget.style.color = '#f5f4f0')}
-                        onMouseLeave={e => (e.currentTarget.style.color = '#888')}>How it works</a></li>
-                    <li><a href="#" style={{ color: 'inherit', textDecoration: 'none', transition: 'color 0.2s' }}
-                        onMouseEnter={e => (e.currentTarget.style.color = '#f5f4f0')}
-                        onMouseLeave={e => (e.currentTarget.style.color = '#888')}>Vaults</a></li>
-                    <li><a href="#" style={{ color: 'inherit', textDecoration: 'none', transition: 'color 0.2s' }}
-                        onMouseEnter={e => (e.currentTarget.style.color = '#f5f4f0')}
-                        onMouseLeave={e => (e.currentTarget.style.color = '#888')}>Docs</a></li>
-                </ul>
+
                 <Link
                     href="/app/save"
                     id="nav-launch-btn"

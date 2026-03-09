@@ -238,7 +238,7 @@ export function DepositModal({ vault, onClose }: DepositModalProps) {
 
                         {needsApproval && (
                             <div style={{ background: 'rgba(212,245,0,0.06)', border: '1px solid rgba(212,245,0,0.15)', borderRadius: '12px', padding: '10px 14px', marginBottom: '16px', fontSize: '12px', color: '#888' }}>
-                                ⚡ Approval required before deposit
+                                Approval required before deposit
                             </div>
                         )}
 
@@ -281,7 +281,7 @@ export function DepositModal({ vault, onClose }: DepositModalProps) {
                                 </button>
                             ) : (
                                 <button id="deposit-confirm-btn" onClick={handleConfirm} style={{ flex: 2, background: '#d4f500', color: '#0a0a0a', fontFamily: 'Syne, sans-serif', fontWeight: 800, padding: '14px', borderRadius: '12px', border: 'none', cursor: 'pointer', fontSize: '15px' }}>
-                                    {needsApproval ? '⚡ Approve & Deposit' : '⚡ Confirm Deposit'}
+                                    {needsApproval ? 'Approve & Deposit' : 'Confirm Deposit'}
                                 </button>
                             )}
                         </div>
