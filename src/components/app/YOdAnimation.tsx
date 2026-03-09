@@ -9,9 +9,10 @@ interface YOdAnimationProps {
     vaultId: string;
     amount: string;
     onDone: () => void;
+    inline?: boolean;
 }
 
-export function YOdAnimation({ active, asset, vaultId, amount, onDone }: YOdAnimationProps) {
+export function YOdAnimation({ active, asset, vaultId, amount, onDone, inline }: YOdAnimationProps) {
     const particlesRef = useRef<HTMLDivElement>(null);
     const styleRefs = useRef<HTMLStyleElement[]>([]);
     const onDoneRef = useRef(onDone);
@@ -120,17 +121,18 @@ export function YOdAnimation({ active, asset, vaultId, amount, onDone }: YOdAnim
       }
     `;
 
-    return createPortal(
+    const content = (
         <div
             style={{
-                position: 'fixed',
+                position: inline ? 'absolute' : 'fixed',
                 inset: 0,
-                background: 'rgba(10,10,10,0.96)',
+                background: inline ? 'rgba(10,10,10,0.85)' : 'rgba(10,10,10,0.96)',
+                borderRadius: inline ? '44px' : '0',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                zIndex: 9000,
+                zIndex: inline ? 50 : 9000,
                 animation: 'portalFadeIn 0.3s ease forwards',
                 pointerEvents: 'all',
                 backdropFilter: 'blur(8px)',
@@ -243,7 +245,8 @@ export function YOdAnimation({ active, asset, vaultId, amount, onDone }: YOdAnim
                     <span style={{ fontSize: '12px', color: '#555', letterSpacing: '0.1em' }}>Confirmed onchain</span>
                 </div>
             </>
-        </div>,
-        document.body
+        </div>
     );
+
+    return inline ? content : createPortal(content, document.body);
 }

@@ -155,6 +155,7 @@ function PhoneMockup() {
                     vaultId="yoUSD"
                     amount="1,000 yoUSD"
                     onDone={() => setYodActive(false)}
+                    inline
                 />
             </div>
         </div>
