@@ -10,22 +10,16 @@ import { useState } from 'react';
 import { DepositModal } from './DepositModal';
 import { WithdrawModal } from './WithdrawModal';
 import { formatUnits } from 'viem';
-import { useVaults } from '@yo-protocol/react';
+import { usePrices, useVaults } from '@yo-protocol/react';
 
-const PRICES: Record<string, number> = {
-    yoUSD: 1,
-    yoBTC: 65000,
-    yoEUR: 1.08,
-    yoETH: 2500
-};
-
-function TotalBalanceCard() {
+function TotalBalanceCard({ prices }: { prices: Record<string, number> }) {
     const { positions, isLoading } = useAppPositions();
 
     const totalUsd = positions.reduce((acc, pos) => {
         if (!pos.hasPosition) return acc;
+        const meta = VAULT_META[pos.vault.symbol as keyof typeof VAULT_META];
         const n = Number(formatUnits(pos.assets, pos.decimals));
-        const price = PRICES[pos.vault.symbol] || 0;
+        const price = prices[pos.vault.symbol] || (meta ? prices[meta.underlyingSymbol] : 0) || 0;
         return acc + (n * price);
     }, 0);
 
@@ -60,7 +54,7 @@ function TotalBalanceCard() {
     );
 }
 
-function UserPositionList() {
+function UserPositionList({ prices }: { prices: Record<string, number> }) {
     const { positions, isLoading, refetch } = useAppPositions();
     const { vaults: vaultsStats } = useVaults();
     const activePositions = positions.filter(p => p.hasPosition);
@@ -81,7 +75,7 @@ function UserPositionList() {
                     activePositions.map(pos => {
                         const meta = VAULT_META[pos.vault.symbol as keyof typeof VAULT_META];
                         const amount = Number(formatUnits(pos.assets, pos.decimals));
-                        const price = PRICES[pos.vault.symbol] || 0;
+                        const price = prices[pos.vault.symbol] || (meta ? prices[meta.underlyingSymbol] : 0) || 0;
                         const usdValue = amount * price;
 
                         const vaultStat = vaultsStats?.find((v: any) => v.id === pos.vault.symbol);
@@ -138,6 +132,8 @@ export function AppDashboard() {
 
     const shortAddress = address ? `${address.slice(0, 6)}...${address.slice(-4)}` : 'Connected';
 
+    const { prices } = usePrices();
+
     return (
         <>
             <style>{`
@@ -162,8 +158,8 @@ export function AppDashboard() {
                         </h1>
                     </div>
 
-                    <TotalBalanceCard />
-                    <UserPositionList />
+                    <TotalBalanceCard prices={prices || {}} />
+                    <UserPositionList prices={prices || {}} />
 
                     <div style={{ marginTop: '48px', padding: '20px 24px', background: '#111', border: '1px solid #1e1e1e', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <img src="/yo/yo_round.svg" alt="Secure" style={{ width: 22, height: 22 }} />
