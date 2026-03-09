@@ -154,6 +154,7 @@ export function DepositModal({ vault, onClose }: DepositModalProps) {
             <YOdAnimation
                 active={yodActive}
                 asset={meta.underlyingSymbol}
+                vaultId={vault.symbol}
                 amount={`${amount} ${vault.symbol}`}
                 onDone={() => { setYodActive(false); onClose(); }}
             />

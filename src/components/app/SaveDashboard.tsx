@@ -459,6 +459,7 @@ export function SaveDashboard() {
             <YOdAnimation
                 active={yodActive}
                 asset={active.asset}
+                vaultId={active.id}
                 amount={yodAmt}
                 onDone={() => { setYodActive(false); setTxStep('idle'); }}
             />

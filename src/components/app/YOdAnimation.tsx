@@ -6,11 +6,12 @@ import { createPortal } from 'react-dom';
 interface YOdAnimationProps {
     active: boolean;
     asset: string;
+    vaultId: string;
     amount: string;
     onDone: () => void;
 }
 
-export function YOdAnimation({ active, asset, amount, onDone }: YOdAnimationProps) {
+export function YOdAnimation({ active, asset, vaultId, amount, onDone }: YOdAnimationProps) {
     const particlesRef = useRef<HTMLDivElement>(null);
     const styleRefs = useRef<HTMLStyleElement[]>([]);
 
@@ -67,11 +68,47 @@ export function YOdAnimation({ active, asset, amount, onDone }: YOdAnimationProp
             onDone();
             styleRefs.current.forEach(s => s.remove());
             styleRefs.current = [];
-        }, 2500);
+        }, 3500);
         return () => clearTimeout(t);
     }, [active, spawnParticles, onDone]);
 
     if (typeof window === 'undefined') return null;
+
+    // Use lowercased asset for base token (e.g. usdc, weth)
+    const baseAsset = asset.toLowerCase();
+
+    // CSS Keyframes string for the token transformation
+    const animationStyles = `
+      @keyframes tokenSpinIn {
+          0%   { transform: scale(0) rotate(0deg); opacity: 0; }
+          15%  { transform: scale(1) rotate(360deg); opacity: 1; }
+          70%  { transform: scale(1) rotate(1080deg); opacity: 1; filter: brightness(1); }
+          85%  { transform: scale(0) rotate(1440deg); opacity: 0; filter: brightness(3); }
+          100% { transform: scale(0) rotate(1440deg); opacity: 0; }
+      }
+      @keyframes letterFlyLeft {
+          0%   { transform: translate(-100px, 0) scale(0) rotate(-180deg); opacity: 0; }
+          15%  { transform: translate(-100px, 0) scale(0) rotate(-180deg); opacity: 0; }
+          30%  { transform: translate(-60px, 0) scale(1) rotate(0deg); opacity: 1; }
+          70%  { transform: translate(-40px, 0) scale(1) rotate(360deg); opacity: 1; }
+          85%  { transform: translate(0, 0) scale(0) rotate(720deg); opacity: 0; filter: brightness(3); }
+          100% { transform: translate(0, 0) scale(0) rotate(720deg); opacity: 0; }
+      }
+      @keyframes letterFlyRight {
+          0%   { transform: translate(100px, 0) scale(0) rotate(180deg); opacity: 0; }
+          15%  { transform: translate(100px, 0) scale(0) rotate(180deg); opacity: 0; }
+          30%  { transform: translate(60px, 0) scale(1) rotate(0deg); opacity: 1; }
+          70%  { transform: translate(40px, 0) scale(1) rotate(-360deg); opacity: 1; }
+          85%  { transform: translate(0, 0) scale(0) rotate(-720deg); opacity: 0; filter: brightness(3); }
+          100% { transform: translate(0, 0) scale(0) rotate(-720deg); opacity: 0; }
+      }
+      @keyframes vaultPopOut {
+          0%   { transform: scale(0) rotate(-180deg); opacity: 0; }
+          80%  { transform: scale(0) rotate(-180deg); opacity: 0; filter: brightness(3); }
+          90%  { transform: scale(1.4) rotate(10deg); opacity: 1; filter: brightness(2); }
+          100% { transform: scale(1) rotate(0deg); opacity: 1; filter: brightness(1); }
+      }
+    `;
 
     return createPortal(
         <div
@@ -109,19 +146,34 @@ export function YOdAnimation({ active, asset, amount, onDone }: YOdAnimationProp
 
             {active && (
                 <>
-                    {/* YO logo spin */}
-                    <div style={{
-                        fontFamily: 'Syne, sans-serif',
-                        fontSize: '80px',
-                        fontWeight: 800,
-                        color: '#d4f500',
-                        letterSpacing: '-3px',
-                        animation: 'yoSpin 0.8s cubic-bezier(0.34,1.56,0.64,1) forwards',
-                        position: 'relative',
-                        zIndex: 1,
-                        textShadow: '0 0 80px rgba(212,245,0,0.5)',
-                    }}>
-                        YO
+                    <style>{animationStyles}</style>
+
+                    {/* Token Transformation Animation sequence */}
+                    <div style={{ position: 'relative', width: '120px', height: '120px', zIndex: 10 }}>
+                        {/* Base Token */}
+                        <img
+                            src={`/tokens/${baseAsset}.svg`}
+                            alt={baseAsset}
+                            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', animation: 'tokenSpinIn 1.6s forwards cubic-bezier(0.4, 0, 0.2, 1)' }}
+                        />
+                        {/* Letter Y */}
+                        <img
+                            src={`/yo/letter_Y.svg`}
+                            alt="Y"
+                            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', animation: 'letterFlyLeft 1.6s forwards cubic-bezier(0.4, 0, 0.2, 1)' }}
+                        />
+                        {/* Letter O */}
+                        <img
+                            src={`/yo/letter_O.svg`}
+                            alt="O"
+                            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', animation: 'letterFlyRight 1.6s forwards cubic-bezier(0.4, 0, 0.2, 1)' }}
+                        />
+                        {/* Vault Token */}
+                        <img
+                            src={`/yo/${vaultId}.svg`}
+                            alt={vaultId}
+                            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', animation: 'vaultPopOut 1.6s forwards cubic-bezier(0.34, 1.56, 0.64, 1)' }}
+                        />
                     </div>
 
                     {/* Text lines */}
@@ -129,9 +181,9 @@ export function YOdAnimation({ active, asset, amount, onDone }: YOdAnimationProp
                         fontFamily: 'DM Sans, sans-serif',
                         fontSize: '16px',
                         color: '#888',
-                        marginTop: '24px',
+                        marginTop: '32px',
                         opacity: 0,
-                        animation: 'fadeUp 0.5s 0.7s ease forwards',
+                        animation: 'fadeUp 0.5s 1.6s ease forwards',
                         letterSpacing: '0.02em',
                         position: 'relative',
                         zIndex: 1,
@@ -146,7 +198,7 @@ export function YOdAnimation({ active, asset, amount, onDone }: YOdAnimationProp
                         color: '#f5f4f0',
                         marginTop: '8px',
                         opacity: 0,
-                        animation: 'fadeUp 0.5s 0.9s ease forwards',
+                        animation: 'fadeUp 0.5s 1.8s ease forwards',
                         letterSpacing: '-0.5px',
                         position: 'relative',
                         zIndex: 1,
@@ -161,7 +213,7 @@ export function YOdAnimation({ active, asset, amount, onDone }: YOdAnimationProp
                         color: '#d4f500',
                         marginTop: '12px',
                         opacity: 0,
-                        animation: 'fadeUp 0.5s 1.1s ease forwards',
+                        animation: 'fadeUp 0.5s 2.0s ease forwards',
                         position: 'relative',
                         zIndex: 1,
                     }}>
@@ -176,7 +228,7 @@ export function YOdAnimation({ active, asset, amount, onDone }: YOdAnimationProp
                         alignItems: 'center',
                         gap: '8px',
                         opacity: 0,
-                        animation: 'fadeUp 0.5s 1.3s ease forwards',
+                        animation: 'fadeUp 0.5s 2.2s ease forwards',
                     }}>
                         <div style={{ width: '6px', height: '6px', background: '#00e87a', borderRadius: '50%', animation: 'pulse 1.5s infinite' }} />
                         <span style={{ fontSize: '12px', color: '#555', letterSpacing: '0.1em' }}>Confirmed onchain</span>
