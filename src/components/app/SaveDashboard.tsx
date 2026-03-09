@@ -479,9 +479,7 @@ export function SaveDashboard() {
                                             <div style={{ position: 'absolute', left: -1, top: '20%', bottom: '20%', width: 2, background: '#d4f500', borderRadius: '0 2px 2px 0' }} />
                                         )}
                                         {/* Icon */}
-                                        <div style={{ width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: col.bg, color: col.color, fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 11, flexShrink: 0 }}>
-                                            {v.label}
-                                        </div>
+                                        <img src={`/yo/${v.id}.svg`} alt={v.id} style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0 }} />
                                         {/* Info */}
                                         <div style={{ flex: 1, minWidth: 0 }}>
                                             <div style={{ ...S.syne, fontSize: 13, fontWeight: 700, color: '#f5f4f0' }}>{v.id}</div>
@@ -507,9 +505,7 @@ export function SaveDashboard() {
                         {/* Top row */}
                         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                                <div style={{ width: 52, height: 52, borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', background: ic(active.iconKey).bg, color: ic(active.iconKey).color, fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 14 }}>
-                                    {active.label}
-                                </div>
+                                <img src={`/yo/${active.id}.svg`} alt={active.id} style={{ width: 52, height: 52, borderRadius: 16 }} />
                                 <div>
                                     <div style={{ ...S.syne, fontSize: 28, fontWeight: 800, letterSpacing: '-1px' }}>{active.id}</div>
                                     <div style={{ fontSize: 13, color: '#666', marginTop: 2 }}>{active.asset} deposited, yield accrued in {active.asset} — {active.chain}</div>
@@ -660,9 +656,7 @@ export function SaveDashboard() {
                                 style={{ flex: 1, background: 'none', border: 'none', outline: 'none', ...S.syne, fontSize: 24, fontWeight: 800, color: '#f5f4f0', letterSpacing: '-0.5px', width: 0, minWidth: 0 }}
                             />
                             <div style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#1e1e1e', border: '1px solid #2a2a2a', borderRadius: 100, padding: '6px 12px', ...S.syne, fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap' }}>
-                                <div style={{ width: 18, height: 18, borderRadius: '50%', background: `${ic(active.iconKey).bg}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: ic(active.iconKey).color, fontWeight: 800 }}>
-                                    {active.symbol}
-                                </div>
+                                <img src={`/tokens/${active.asset.toLowerCase()}.svg`} alt={active.asset} style={{ width: 18, height: 18, borderRadius: '50%' }} />
                                 {active.asset}
                             </div>
                         </div>

@@ -186,7 +186,8 @@ export function DepositModal({ vault, onClose }: DepositModalProps) {
                                     onChange={e => setAmount(e.target.value)}
                                     style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontFamily: 'Syne, sans-serif', fontSize: '28px', fontWeight: 700, color: '#f5f4f0', letterSpacing: '-1px' }}
                                 />
-                                <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '14px', fontWeight: 700, color: '#888', flexShrink: 0 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontFamily: 'Syne, sans-serif', fontSize: '14px', fontWeight: 700, color: '#888', flexShrink: 0 }}>
+                                    <img src={`/tokens/${meta.underlyingSymbol.toLowerCase()}.svg`} alt={meta.underlyingSymbol} style={{ width: 20, height: 20, borderRadius: '50%' }} />
                                     {meta.underlyingSymbol}
                                 </div>
                             </div>
