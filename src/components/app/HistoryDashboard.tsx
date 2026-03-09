@@ -36,7 +36,7 @@ function txTypeLabel(type: string) {
 const shortTx = (hash: string) => `${hash.slice(0, 6)}...${hash.slice(-4)}`;
 
 // ─── Single vault rows ────────────────────────────────────────────────────────
-function VaultHistoryRows({ vaultId, address }: { vaultId: VaultId; address?: `0x${string}` }) {
+function VaultHistoryRows({ vaultId, address, filterType }: { vaultId: VaultId; address?: `0x${string}`; filterType: 'all' | 'deposit' | 'withdraw' }) {
     const meta = VAULT_META[vaultId];
     const { history, isLoading } = useUserHistory(vaultId, address, { limit: 50, enabled: !!address });
 
@@ -56,9 +56,19 @@ function VaultHistoryRows({ vaultId, address }: { vaultId: VaultId; address?: `0
 
     if (!history || history.length === 0) return null;
 
+    // Filter history based on type if not 'all'
+    const filteredHistory = filterType === 'all'
+        ? history
+        : history.filter((item: UserHistoryItem) => {
+            const tx = txTypeLabel(item.type);
+            return tx.label.toLowerCase() === filterType.toLowerCase();
+        });
+
+    if (filteredHistory.length === 0) return null;
+
     return (
         <>
-            {history.map((item: UserHistoryItem, idx: number) => {
+            {filteredHistory.map((item: UserHistoryItem, idx: number) => {
                 const tx = txTypeLabel(item.type);
                 const explorerBase = (item.network ?? '').toLowerCase().includes('ethereum') ? 'https://etherscan.io/tx/' : 'https://basescan.org/tx/';
                 return (
@@ -186,7 +196,7 @@ export function HistoryDashboard() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {displayVaults.map(vid => <VaultHistoryRows key={vid} vaultId={vid} address={address} />)}
+                                    {displayVaults.map(vid => <VaultHistoryRows key={vid} vaultId={vid} address={address} filterType={filterType} />)}
                                 </tbody>
                             </table>
                         </div>
