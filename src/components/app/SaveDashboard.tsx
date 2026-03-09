@@ -20,6 +20,24 @@ import { AppHeader } from '@/components/shared/AppHeader';
 import { YOdAnimation } from './YOdAnimation';
 import { VAULT_META } from '@/lib/constants';
 
+// Helper to cleanly format viem errors
+const parseError = (e: any): string => {
+    if (!e || !e.message) return 'Transaction failed';
+    const msg = e.message.toLowerCase();
+    if (msg.includes('user rejected') || msg.includes('user denied')) return 'User rejected the request.';
+    // If it's a viem error string, try to extract just the first sentence or the "Details:" line
+    if (msg.includes('details:')) {
+        const detailsMatch = e.message.match(/Details:\s*([^\n]+)/);
+        if (detailsMatch && detailsMatch[1]) {
+            const detailStr = detailsMatch[1].toLowerCase();
+            if (detailStr.includes('user rejected') || detailStr.includes('user denied')) return 'User rejected the request.';
+            return detailsMatch[1];
+        }
+    }
+    const clean = e.message.split('Request Arguments:')[0].split('\n')[0].trim();
+    return clean || 'Transaction failed';
+};
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type TxStep = 'idle' | 'approving' | 'depositing' | 'withdrawing' | 'success' | 'error';
@@ -252,9 +270,9 @@ export function SaveDashboard() {
     const [yodActive, setYodActive] = useState(false);
     const [yodAmt, setYodAmt] = useState('');
 
-    const { approve } = useApprove({ token: tokenAddr, spender: vaultAddr, onError: (e: Error) => { setErrMsg(e.message); setTxStep('error'); } });
-    const { deposit, isSuccess: depDone } = useDeposit({ vault: activeId, onError: (e: Error) => { setErrMsg(e.message); setTxStep('error'); } });
-    const { redeem, isSuccess: redDone } = useRedeem({ vault: activeId, onError: (e: Error) => { setErrMsg(e.message); setTxStep('error'); } });
+    const { approve } = useApprove({ token: tokenAddr, spender: vaultAddr, onError: (e: any) => { setErrMsg(parseError(e)); setTxStep('error'); } });
+    const { deposit, isSuccess: depDone } = useDeposit({ vault: activeId, onError: (e: any) => { setErrMsg(parseError(e)); setTxStep('error'); } });
+    const { redeem, isSuccess: redDone } = useRedeem({ vault: activeId, onError: (e: any) => { setErrMsg(parseError(e)); setTxStep('error'); } });
 
     useEffect(() => {
         if (!depDone) return;
@@ -289,7 +307,7 @@ export function SaveDashboard() {
             setTxStep('depositing');
             await deposit({ token: tokenAddr, amount: parsedAmt, chainId });
         } catch (e: unknown) {
-            setErrMsg((e as Error)?.message ?? 'Transaction failed');
+            setErrMsg(parseError(e));
             setTxStep('error');
         }
     }, [parsedAmt, needsApproval, approve, deposit, tokenAddr, chainId]);
@@ -301,7 +319,7 @@ export function SaveDashboard() {
             setTxStep('withdrawing');
             await redeem(ownedShares);
         } catch (e: any) {
-            setErrMsg(e?.message ?? 'Transaction failed');
+            setErrMsg(parseError(e));
             setTxStep('error');
         }
     }, [ownedShares, redeem]);
@@ -733,7 +751,7 @@ export function SaveDashboard() {
                                 background: '#333', color: '#f5f4f0',
                                 ...S.syne, fontWeight: 800, fontSize: 15,
                                 border: '1px solid #555', borderRadius: 16, cursor: 'pointer',
-                                letterSpacing: '0.02em', transition: 'all 0.2s',
+                                letterSpacing: '0.02em', transition: 'all 0.2s', flexShrink: 0
                             }}>
                             Switch Network
                         </button>
@@ -751,6 +769,7 @@ export function SaveDashboard() {
                                 transition: 'transform 0.15s, box-shadow 0.2s',
                                 position: 'relative', overflow: 'hidden',
                                 opacity: btnDisabled ? 0.5 : 1,
+                                flexShrink: 0
                             }}>
                             {btnLabel}
                         </button>

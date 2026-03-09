@@ -8,6 +8,24 @@ import type { VaultConfig } from '@yo-protocol/core';
 import { VAULT_META } from '@/lib/constants';
 import { YOdAnimation } from './YOdAnimation';
 
+// Helper to cleanly format viem errors
+const parseError = (e: any): string => {
+    if (!e || !e.message) return 'Transaction failed';
+    const msg = e.message.toLowerCase();
+    if (msg.includes('user rejected') || msg.includes('user denied')) return 'User rejected the request.';
+    // If it's a viem error string, try to extract just the first sentence or the "Details:" line
+    if (msg.includes('details:')) {
+        const detailsMatch = e.message.match(/Details:\s*([^\n]+)/);
+        if (detailsMatch && detailsMatch[1]) {
+            const detailStr = detailsMatch[1].toLowerCase();
+            if (detailStr.includes('user rejected') || detailStr.includes('user denied')) return 'User rejected the request.';
+            return detailsMatch[1];
+        }
+    }
+    const clean = e.message.split('Request Arguments:')[0].split('\n')[0].trim();
+    return clean || 'Transaction failed';
+};
+
 interface DepositModalProps {
     vault: VaultConfig;
     onClose: () => void;
@@ -51,7 +69,10 @@ export function DepositModal({ vault, onClose }: DepositModalProps) {
     } = useApprove({
         token: assetAddress,
         spender: vault.address,
-        onError: (e) => { setErrorMsg(e.message || 'Approval failed'); setStep('error'); },
+        onError: (e) => {
+            setErrorMsg(parseError(e) || 'Approval failed');
+            setStep('error');
+        },
     });
 
     // Deposit hook — vault fixed at setup
@@ -62,7 +83,10 @@ export function DepositModal({ vault, onClose }: DepositModalProps) {
         isSuccess: depositSuccess,
     } = useDeposit({
         vault: vault.symbol,
-        onError: (e) => { setErrorMsg(e.message || 'Deposit failed'); setStep('error'); },
+        onError: (e) => {
+            setErrorMsg(parseError(e) || 'Deposit failed');
+            setStep('error');
+        },
     });
 
     // Hook into global queries to force refresh on success
@@ -118,8 +142,7 @@ export function DepositModal({ vault, onClose }: DepositModalProps) {
             setStep('depositing');
             await deposit({ token: assetAddress, amount: parsedAmount, chainId });
         } catch (e: unknown) {
-            const err = e as Error;
-            setErrorMsg(err.message || 'Transaction failed');
+            setErrorMsg(parseError(e));
             setStep('error');
         }
     };
