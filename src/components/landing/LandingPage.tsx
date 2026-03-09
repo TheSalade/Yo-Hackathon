@@ -264,9 +264,21 @@ export default function LandingPage() {
                     <div style={{ textAlign: 'left' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                             {[
-                                { icon: '⚡', title: 'Instant deposit', desc: 'Drop your USDC, ETH or BTC. Get yoTokens instantly. Start earning in the same block.' },
-                                { icon: '🔒', title: 'Risk-adjusted yield', desc: 'YO Protocol routes funds across vetted strategies. You see exactly where your money goes.' },
-                                { icon: '🌐', title: 'Multi-chain', desc: 'Base, Ethereum, Arbitrum. One interface, all your savings in one place.' },
+                                {
+                                    icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg>,
+                                    title: 'Instant deposit',
+                                    desc: 'Drop your USDC, ETH or BTC. Get yoTokens instantly. Start earning in the same block.'
+                                },
+                                {
+                                    icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>,
+                                    title: 'Risk-adjusted yield',
+                                    desc: 'YO Protocol routes funds across vetted strategies. You see exactly where your money goes.'
+                                },
+                                {
+                                    icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>,
+                                    title: 'Multi-chain',
+                                    desc: 'Base, Ethereum, Arbitrum. One interface, all your savings in one place.'
+                                },
                             ].map((f, i) => (
                                 <div key={f.title} className="animate-slide-in-right" style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', animationDelay: `${(i + 1) * 0.1}s` }}>
                                     <div style={{ width: '36px', height: '36px', borderRadius: '10px', border: '1px solid #2a2a2a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', flexShrink: 0, background: '#141414' }}>

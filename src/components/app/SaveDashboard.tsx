@@ -773,7 +773,7 @@ export function SaveDashboard() {
 
                     {/* Security note */}
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 11, color: '#444', lineHeight: 1.6 }}>
-                        <span style={{ color: '#555', flexShrink: 0, marginTop: 1 }}>🔒</span>
+                        <span style={{ color: '#555', flexShrink: 0, marginTop: 1 }}></span>
                         <span>Your funds are secured by YO Protocol smart contracts, audited by independent security researchers. You can withdraw at any time.</span>
                     </div>
 
