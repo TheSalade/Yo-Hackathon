@@ -14,6 +14,11 @@ interface YOdAnimationProps {
 export function YOdAnimation({ active, asset, vaultId, amount, onDone }: YOdAnimationProps) {
     const particlesRef = useRef<HTMLDivElement>(null);
     const styleRefs = useRef<HTMLStyleElement[]>([]);
+    const onDoneRef = useRef(onDone);
+
+    useEffect(() => {
+        onDoneRef.current = onDone;
+    }, [onDone]);
 
     const spawnParticles = useCallback(() => {
         if (!particlesRef.current) return;
@@ -65,14 +70,15 @@ export function YOdAnimation({ active, asset, vaultId, amount, onDone }: YOdAnim
         if (!active) return;
         spawnParticles();
         const t = setTimeout(() => {
-            onDone();
+            onDoneRef.current();
             styleRefs.current.forEach(s => s.remove());
             styleRefs.current = [];
         }, 3500);
         return () => clearTimeout(t);
-    }, [active, spawnParticles, onDone]);
+    }, [active, spawnParticles]);
 
     if (typeof window === 'undefined') return null;
+    if (!active) return null;
 
     // Use lowercased asset for base token (e.g. usdc, weth)
     const baseAsset = asset.toLowerCase();
@@ -108,6 +114,10 @@ export function YOdAnimation({ active, asset, vaultId, amount, onDone }: YOdAnim
           90%  { transform: scale(1.4) rotate(10deg); opacity: 1; filter: brightness(2); }
           100% { transform: scale(1) rotate(0deg); opacity: 1; filter: brightness(1); }
       }
+      @keyframes portalFadeIn {
+          0%   { opacity: 0; }
+          100% { opacity: 1; }
+      }
     `;
 
     return createPortal(
@@ -121,9 +131,8 @@ export function YOdAnimation({ active, asset, vaultId, amount, onDone }: YOdAnim
                 alignItems: 'center',
                 justifyContent: 'center',
                 zIndex: 9000,
-                opacity: active ? 1 : 0,
-                pointerEvents: active ? 'all' : 'none',
-                transition: 'opacity 0.3s ease',
+                animation: 'portalFadeIn 0.3s ease forwards',
+                pointerEvents: 'all',
                 backdropFilter: 'blur(8px)',
                 overflow: 'hidden',
             }}
@@ -144,97 +153,96 @@ export function YOdAnimation({ active, asset, vaultId, amount, onDone }: YOdAnim
                 pointerEvents: 'none',
             }} />
 
-            {active && (
-                <>
-                    <style>{animationStyles}</style>
 
-                    {/* Token Transformation Animation sequence */}
-                    <div style={{ position: 'relative', width: '120px', height: '120px', zIndex: 10 }}>
-                        {/* Base Token */}
-                        <img
-                            src={`/tokens/${baseAsset}.svg`}
-                            alt={baseAsset}
-                            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', animation: 'tokenSpinIn 1.6s forwards cubic-bezier(0.4, 0, 0.2, 1)' }}
-                        />
-                        {/* Letter Y */}
-                        <img
-                            src={`/yo/letter_Y.svg`}
-                            alt="Y"
-                            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', animation: 'letterFlyLeft 1.6s forwards cubic-bezier(0.4, 0, 0.2, 1)' }}
-                        />
-                        {/* Letter O */}
-                        <img
-                            src={`/yo/letter_O.svg`}
-                            alt="O"
-                            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', animation: 'letterFlyRight 1.6s forwards cubic-bezier(0.4, 0, 0.2, 1)' }}
-                        />
-                        {/* Vault Token */}
-                        <img
-                            src={`/yo/${vaultId}.svg`}
-                            alt={vaultId}
-                            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', animation: 'vaultPopOut 1.6s forwards cubic-bezier(0.34, 1.56, 0.64, 1)' }}
-                        />
-                    </div>
+            <>
+                <style>{animationStyles}</style>
 
-                    {/* Text lines */}
-                    <div style={{
-                        fontFamily: 'DM Sans, sans-serif',
-                        fontSize: '16px',
-                        color: '#888',
-                        marginTop: '32px',
-                        opacity: 0,
-                        animation: 'fadeUp 0.5s 1.6s ease forwards',
-                        letterSpacing: '0.02em',
-                        position: 'relative',
-                        zIndex: 1,
-                    }}>
-                        Your {asset} has been
-                    </div>
+                {/* Token Transformation Animation sequence */}
+                <div style={{ position: 'relative', width: '120px', height: '120px', zIndex: 10 }}>
+                    {/* Base Token */}
+                    <img
+                        src={`/tokens/${baseAsset}.svg`}
+                        alt={baseAsset}
+                        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', animation: 'tokenSpinIn 1.6s forwards cubic-bezier(0.4, 0, 0.2, 1)' }}
+                    />
+                    {/* Letter Y */}
+                    <img
+                        src={`/yo/letter_Y.svg`}
+                        alt="Y"
+                        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', animation: 'letterFlyLeft 1.6s forwards cubic-bezier(0.4, 0, 0.2, 1)' }}
+                    />
+                    {/* Letter O */}
+                    <img
+                        src={`/yo/letter_O.svg`}
+                        alt="O"
+                        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', animation: 'letterFlyRight 1.6s forwards cubic-bezier(0.4, 0, 0.2, 1)' }}
+                    />
+                    {/* Vault Token */}
+                    <img
+                        src={`/yo/${vaultId}.svg`}
+                        alt={vaultId}
+                        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', animation: 'vaultPopOut 1.6s forwards cubic-bezier(0.34, 1.56, 0.64, 1)' }}
+                    />
+                </div>
 
-                    <div style={{
-                        fontFamily: 'Syne, sans-serif',
-                        fontSize: '32px',
-                        fontWeight: 800,
-                        color: '#f5f4f0',
-                        marginTop: '8px',
-                        opacity: 0,
-                        animation: 'fadeUp 0.5s 1.8s ease forwards',
-                        letterSpacing: '-0.5px',
-                        position: 'relative',
-                        zIndex: 1,
-                    }}>
-                        YO&apos;d ✦
-                    </div>
+                {/* Text lines */}
+                <div style={{
+                    fontFamily: 'DM Sans, sans-serif',
+                    fontSize: '16px',
+                    color: '#888',
+                    marginTop: '32px',
+                    opacity: 0,
+                    animation: 'fadeUp 0.5s 1.6s ease forwards',
+                    letterSpacing: '0.02em',
+                    position: 'relative',
+                    zIndex: 1,
+                }}>
+                    Your {asset} has been
+                </div>
 
-                    <div style={{
-                        fontFamily: 'Syne, sans-serif',
-                        fontSize: '20px',
-                        fontWeight: 700,
-                        color: '#d4f500',
-                        marginTop: '12px',
-                        opacity: 0,
-                        animation: 'fadeUp 0.5s 2.0s ease forwards',
-                        position: 'relative',
-                        zIndex: 1,
-                    }}>
-                        +{amount}
-                    </div>
+                <div style={{
+                    fontFamily: 'Syne, sans-serif',
+                    fontSize: '32px',
+                    fontWeight: 800,
+                    color: '#f5f4f0',
+                    marginTop: '8px',
+                    opacity: 0,
+                    animation: 'fadeUp 0.5s 1.8s ease forwards',
+                    letterSpacing: '-0.5px',
+                    position: 'relative',
+                    zIndex: 1,
+                }}>
+                    YO&apos;d ✦
+                </div>
 
-                    {/* Bottom hint */}
-                    <div style={{
-                        position: 'absolute',
-                        bottom: '48px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        opacity: 0,
-                        animation: 'fadeUp 0.5s 2.2s ease forwards',
-                    }}>
-                        <div style={{ width: '6px', height: '6px', background: '#00e87a', borderRadius: '50%', animation: 'pulse 1.5s infinite' }} />
-                        <span style={{ fontSize: '12px', color: '#555', letterSpacing: '0.1em' }}>Confirmed onchain</span>
-                    </div>
-                </>
-            )}
+                <div style={{
+                    fontFamily: 'Syne, sans-serif',
+                    fontSize: '20px',
+                    fontWeight: 700,
+                    color: '#d4f500',
+                    marginTop: '12px',
+                    opacity: 0,
+                    animation: 'fadeUp 0.5s 2.0s ease forwards',
+                    position: 'relative',
+                    zIndex: 1,
+                }}>
+                    +{amount}
+                </div>
+
+                {/* Bottom hint */}
+                <div style={{
+                    position: 'absolute',
+                    bottom: '48px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    opacity: 0,
+                    animation: 'fadeUp 0.5s 2.2s ease forwards',
+                }}>
+                    <div style={{ width: '6px', height: '6px', background: '#00e87a', borderRadius: '50%', animation: 'pulse 1.5s infinite' }} />
+                    <span style={{ fontSize: '12px', color: '#555', letterSpacing: '0.1em' }}>Confirmed onchain</span>
+                </div>
+            </>
         </div>,
         document.body
     );

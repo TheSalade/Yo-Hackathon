@@ -4,104 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { TICKER_VAULTS, VAULT_META } from '@/lib/constants';
 import { useTotalTvl } from '@yo-protocol/react';
+import { YOdAnimation } from '../app/YOdAnimation';
 
-
-function YodOverlay({ active, onDone }: { active: boolean; onDone: () => void }) {
-    const particlesRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        if (!active || !particlesRef.current) return;
-        const container = particlesRef.current;
-        container.innerHTML = '';
-        for (let i = 0; i < 24; i++) {
-            const p = document.createElement('div');
-            const startX = 50 + (Math.random() - 0.5) * 20;
-            const startY = 50 + (Math.random() - 0.5) * 20;
-            const angle = Math.random() * Math.PI * 2;
-            const dist = 60 + Math.random() * 120;
-            const endX = startX + Math.cos(angle) * dist;
-            const endY = startY + Math.sin(angle) * dist;
-            const size = 2 + Math.random() * 4;
-            const isYellow = Math.random() > 0.5;
-            const delay = Math.random() * 0.3;
-
-            const style = document.createElement('style');
-            style.textContent = `
-        @keyframes particle-anim-${i} {
-          0% { left:${startX}%;top:${startY}%;opacity:1;transform:scale(1);}
-          100% { left:${endX}%;top:${endY}%;opacity:0;transform:scale(0);}
-        }
-      `;
-            document.head.appendChild(style);
-
-            p.style.cssText = `
-        position:absolute;
-        width:${size}px;height:${size}px;
-        background:${isYellow ? '#d4f500' : '#00e87a'};
-        border-radius:50%;
-        animation:particle-anim-${i} 1s ${delay}s ease-out forwards;
-        left:${startX}%;top:${startY}%;
-      `;
-            container.appendChild(p);
-        }
-
-        const t = setTimeout(onDone, 2800);
-        return () => clearTimeout(t);
-    }, [active, onDone]);
-
-    return (
-        <div
-            style={{
-                position: 'absolute',
-                inset: 0,
-                background: '#0a0a0a',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                zIndex: 50,
-                borderRadius: '44px',
-                opacity: active ? 1 : 0,
-                pointerEvents: active ? 'all' : 'none',
-                transition: 'opacity 0.3s',
-                overflow: 'hidden',
-            }}
-        >
-            <div ref={particlesRef} style={{ position: 'absolute', inset: 0, overflow: 'hidden', borderRadius: '44px' }} />
-            {active && (
-                <>
-                    <div style={{
-                        fontFamily: 'Syne, sans-serif',
-                        fontSize: '56px',
-                        fontWeight: 800,
-                        color: '#d4f500',
-                        letterSpacing: '-2px',
-                        animation: 'yoSpin 0.8s cubic-bezier(0.34,1.56,0.64,1) forwards',
-                    }}>YO</div>
-                    <div style={{
-                        fontFamily: 'DM Sans, sans-serif',
-                        fontSize: '12px',
-                        color: '#888',
-                        marginTop: '16px',
-                        opacity: 0,
-                        animation: 'fadeUp 0.5s 0.6s forwards',
-                        letterSpacing: '0.05em',
-                    }}>Your USDC has been</div>
-                    <div style={{
-                        fontFamily: 'Syne, sans-serif',
-                        fontSize: '20px',
-                        fontWeight: 800,
-                        color: '#f5f4f0',
-                        marginTop: '8px',
-                        opacity: 0,
-                        animation: 'fadeUp 0.5s 0.8s forwards',
-                        letterSpacing: '-0.5px',
-                    }}>YO&apos;d ✦</div>
-                </>
-            )}
-        </div>
-    );
-}
 
 function PhoneMockup() {
     const [balance, setBalance] = useState(3284.50);
@@ -245,7 +149,13 @@ function PhoneMockup() {
                     </div>
                 </div>
 
-                <YodOverlay active={yodActive} onDone={() => setYodActive(false)} />
+                <YOdAnimation
+                    active={yodActive}
+                    asset="USDC"
+                    vaultId="yoUSD"
+                    amount="1,000 yoUSD"
+                    onDone={() => setYodActive(false)}
+                />
             </div>
         </div>
     );
