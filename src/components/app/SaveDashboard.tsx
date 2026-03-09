@@ -14,6 +14,8 @@ import {
     useApprove,
     useDeposit,
     useRedeem,
+    useUserPosition,
+    useTokenBalance,
 } from '@yo-protocol/react';
 import Link from 'next/link';
 import { AppHeader } from '@/components/shared/AppHeader';
@@ -215,48 +217,33 @@ export function SaveDashboard() {
 
     const { shares: previewShares } = usePreviewDeposit(activeId, parsedAmt);
 
-    // Bypassing @yo-protocol SDK cross-chain issues by enforcing useReadContract on resolvedChainId.
-    const { data: rawShares, refetch: refetchShares } = useReadContract({
-        address: vaultAddr !== '0x' ? vaultAddr : undefined,
-        abi: [{ inputs: [{ name: 'account', type: 'address' }], name: 'balanceOf', outputs: [{ type: 'uint256' }], stateMutability: 'view', type: 'function' }] as const,
-        functionName: 'balanceOf',
-        args: address ? [address] : undefined,
-        chainId: resolvedChainId as 1 | 8453 | undefined,
-        query: { enabled: vaultAddr !== '0x' && !!address && !!resolvedChainId }
+    // useUserPosition: Dedicated SDK hook to fetch user's position in this specific vault.
+    const { position: activePos, refetch: refetchUserPos } = useUserPosition(activeId, address, {
+        enabled: !!address && !!resolvedChainId
     });
 
-    const ownedShares = rawShares ?? 0n;
+    const userPos = {
+        shares: activePos?.shares ?? 0n,
+        assets: activePos?.assets ?? 0n
+    };
 
-    const { data: rawAssets, refetch: refetchUserAssets } = useReadContract({
-        address: vaultAddr !== '0x' ? vaultAddr : undefined,
-        abi: [{ inputs: [{ name: 'shares', type: 'uint256' }], name: 'convertToAssets', outputs: [{ type: 'uint256' }], stateMutability: 'view', type: 'function' }] as const,
-        functionName: 'convertToAssets',
-        args: [ownedShares],
-        chainId: resolvedChainId as 1 | 8453 | undefined,
-        query: { enabled: vaultAddr !== '0x' && ownedShares > 0n && !!resolvedChainId }
-    });
-
-    const userPos = { shares: ownedShares, assets: rawAssets ?? 0n };
-    const refetchUserPos = useCallback(() => { refetchShares(); refetchUserAssets(); }, [refetchShares, refetchUserAssets]);
-
-    // useBalance: user's held token balance using wagmi directly to force the target network cross-chain
-    const { data: tokenBalanceData, refetch: refetchTokenBalance } = useBalance({
+    // useTokenBalance: Dedicated SDK hook to fetch user's underlying token balance.
+    const { balance: tokenBalance, refetch: refetchTokenBalance } = useTokenBalance(
+        tokenAddr !== '0x' ? tokenAddr : undefined,
         address,
-        token: tokenAddr !== '0x' ? tokenAddr : undefined,
-        chainId: resolvedChainId as 1 | 8453 | undefined,
-        query: {
-            enabled: tokenAddr !== '0x' && !!resolvedChainId,
+        {
+            enabled: tokenAddr !== '0x' && !!resolvedChainId && !!address
         }
-    });
+    );
 
     // Evaluate displayable balance string and exact number
     const availableBalanceLabel = panelMode === 'deposit'
-        ? (tokenBalanceData ? Number(formatUnits(tokenBalanceData.value, tokenBalanceData.decimals)).toLocaleString(undefined, { maximumFractionDigits: 6 }) : '—')
-        : (ownedShares ? Number(formatUnits(ownedShares, vaultState?.assetDecimals ?? 6)).toLocaleString(undefined, { maximumFractionDigits: 6 }) : '—');
+        ? (tokenBalance ? Number(formatUnits(tokenBalance.balance, tokenBalance.decimals)).toLocaleString(undefined, { maximumFractionDigits: 6 }) : '—')
+        : (userPos.assets > 0n ? Number(formatUnits(userPos.assets, decimals)).toLocaleString(undefined, { maximumFractionDigits: 6 }) : '—');
 
     const maxNumberValueStr = panelMode === 'deposit'
-        ? (tokenBalanceData ? formatUnits(tokenBalanceData.value, tokenBalanceData.decimals) : '0')
-        : (ownedShares ? formatUnits(ownedShares, vaultState?.assetDecimals ?? 6) : '0');
+        ? (tokenBalance ? formatUnits(tokenBalance.balance, tokenBalance.decimals) : '0')
+        : (userPos.assets > 0n ? formatUnits(userPos.assets, decimals) : '0');
 
     // removed duplicate hooks because they have been moved above.
 
@@ -290,34 +277,32 @@ export function SaveDashboard() {
             setTxStep('idle'); // Changed from 'success' to 'idle' for consistency with withdraw
             setAmountStr('');
             refetchUserPos();
-            refetchShares();
             refetchVaultState();
             refetchTokenBalance();
         } catch (e: unknown) {
             setErrMsg(parseError(e));
             setTxStep('error');
         }
-    }, [parsedAmt, needsApproval, approve, deposit, tokenAddr, chainId, amountStr, refetchUserPos, refetchShares, refetchVaultState, refetchTokenBalance]);
+    }, [parsedAmt, needsApproval, approve, deposit, tokenAddr, chainId, amountStr, refetchUserPos, refetchTokenBalance]);
 
     const handleWithdraw = useCallback(async () => {
-        if (!ownedShares) return;
+        if (!userPos.shares) return;
         setErrMsg('');
         try {
             setTxStep('withdrawing');
-            await redeem(ownedShares);
+            await redeem(userPos.shares);
 
             // On Success
             setTxStep('idle');
             setAmountStr('');
             refetchUserPos();
-            refetchShares();
             refetchVaultState();
             refetchTokenBalance();
         } catch (e: any) {
             setErrMsg(parseError(e));
             setTxStep('error');
         }
-    }, [ownedShares, redeem]);
+    }, [userPos.shares, redeem, refetchUserPos, refetchVaultState, refetchTokenBalance]);
 
     // ── Formatted display values ──
     // TVL: use the API-provided tvl.formatted from useVaults when available,
@@ -418,7 +403,14 @@ export function SaveDashboard() {
                 : panelMode === 'deposit' ? 'YO my funds'
                     : 'Withdraw funds';
 
-    const btnDisabled = !parsedAmt || ['approving', 'depositing', 'withdrawing'].includes(txStep);
+    const isInsufficient = parsedAmt && (
+        panelMode === 'deposit'
+            ? parsedAmt > (tokenBalance?.balance ?? 0n)
+            : parsedAmt > userPos.assets
+    );
+
+    const btnDisabled = !parsedAmt || ['approving', 'depositing', 'withdrawing'].includes(txStep) || !!isInsufficient;
+    const finalBtnLabel = isInsufficient ? 'Insufficient balance' : btnLabel;
 
     return (
         <>
@@ -767,7 +759,7 @@ export function SaveDashboard() {
                                 opacity: btnDisabled ? 0.5 : 1,
                                 flexShrink: 0
                             }}>
-                            {btnLabel}
+                            {finalBtnLabel}
                         </button>
                     )}
 

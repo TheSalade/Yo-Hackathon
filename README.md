@@ -6,14 +6,29 @@ YOLO transforms the highly-technical, anxiety-inducing DeFi experience into a jo
 
 ---
 
-## 🏎️ Live Demo & Video
+## Live Demo & Video
 
 *  Demo :
 *   
 
 ---
 
-## 🏆 How YOLO Works
+## Architecture Overview
+
+```mermaid
+graph TD
+    User([User]) -->|Interacts| UI[YOLO Frontend - Next.js]
+    UI -->|Uses| SDK[@yo-protocol/react Hooks]
+    SDK -->|Read/Write| YO[YO Protocol Vaults]
+    YO -->|Strategy| Base[Base]
+    YO -->|Strategy| ETH[Ethereum]
+    YO -->|Strategy| Arb[Arbitrum]
+    Base & ETH & Arb -->|Real Yield| User
+```
+
+---
+
+## How YOLO Works
 
 ### 1. User experience
 *   **Jargon-Free Onboarding**: Gone are the days of manually clicking "Approve ERC20" then waiting to "Deposit to Router". YOLO intelligently handles approvals, allowances, and deposits in a single, minimal modal interface.
