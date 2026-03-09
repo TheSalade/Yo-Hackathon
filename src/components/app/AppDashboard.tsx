@@ -6,11 +6,20 @@ import { injected } from 'wagmi/connectors';
 import { AppHeader } from '@/components/shared/AppHeader';
 import { VAULT_META } from '@/lib/constants';
 import { useAppPositions } from '@/hooks/useAppPositions';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { DepositModal } from './DepositModal';
 import { WithdrawModal } from './WithdrawModal';
 import { formatUnits } from 'viem';
 import { usePrices, useVaults } from '@yo-protocol/react';
+
+const FALLBACK_PRICES: Record<string, number> = {
+    yoUSD: 1, USDC: 1,
+    yoBTC: 65000, cbBTC: 65000,
+    yoEUR: 1.08, EURC: 1.08,
+    yoETH: 2500, ETH: 2500,
+    yoGOLD: 2600, XAUt: 2600,
+    yoUSDT: 1, USDT: 1
+};
 
 function TotalBalanceCard({ prices }: { prices: Record<string, number> }) {
     const { positions, isLoading } = useAppPositions();
@@ -19,7 +28,11 @@ function TotalBalanceCard({ prices }: { prices: Record<string, number> }) {
         if (!pos.hasPosition) return acc;
         const meta = VAULT_META[pos.vault.symbol as keyof typeof VAULT_META];
         const n = Number(formatUnits(pos.assets, pos.decimals));
-        const price = prices[pos.vault.symbol] || (meta ? prices[meta.underlyingSymbol] : 0) || 0;
+        const price = prices[pos.vault.symbol]
+            || (meta ? prices[meta.underlyingSymbol] : 0)
+            || FALLBACK_PRICES[pos.vault.symbol]
+            || (meta ? FALLBACK_PRICES[meta.underlyingSymbol] : 0)
+            || 0;
         return acc + (n * price);
     }, 0);
 
@@ -75,7 +88,11 @@ function UserPositionList({ prices }: { prices: Record<string, number> }) {
                     activePositions.map(pos => {
                         const meta = VAULT_META[pos.vault.symbol as keyof typeof VAULT_META];
                         const amount = Number(formatUnits(pos.assets, pos.decimals));
-                        const price = prices[pos.vault.symbol] || (meta ? prices[meta.underlyingSymbol] : 0) || 0;
+                        const price = prices[pos.vault.symbol]
+                            || (meta ? prices[meta.underlyingSymbol] : 0)
+                            || FALLBACK_PRICES[pos.vault.symbol]
+                            || (meta ? FALLBACK_PRICES[meta.underlyingSymbol] : 0)
+                            || 0;
                         const usdValue = amount * price;
 
                         const vaultStat = vaultsStats?.find((v: any) => v.id === pos.vault.symbol);
@@ -133,6 +150,12 @@ export function AppDashboard() {
     const shortAddress = address ? `${address.slice(0, 6)}...${address.slice(-4)}` : 'Connected';
 
     const { prices } = usePrices();
+
+    useEffect(() => {
+        if (prices) {
+            console.log('[Dashboard] SDK Prices:', prices);
+        }
+    }, [prices]);
 
     return (
         <>
