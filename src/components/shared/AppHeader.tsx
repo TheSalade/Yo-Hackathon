@@ -62,14 +62,14 @@ function NetworkSwitcher() {
                 onClick={() => switchChain({ chainId: 8453 })}
                 style={btnStyle(isBase)}
             >
-                <img src="https://mint.fun/api/avatar/8453" alt="Base" style={{ width: 12, height: 12, borderRadius: '50%' }} />
+                <img src="/blockchains/base.svg" alt="Base" style={{ width: 12, height: 12, borderRadius: '50%' }} />
                 Base
             </button>
             <button
                 onClick={() => switchChain({ chainId: 1 })}
                 style={btnStyle(isEth)}
             >
-                <img src="https://mint.fun/api/avatar/1" alt="Eth" style={{ width: 12, height: 12, borderRadius: '50%' }} />
+                <img src="/blockchains/ethereum.svg" alt="Eth" style={{ width: 12, height: 12, borderRadius: '50%' }} />
                 Ethereum
             </button>
         </div>
