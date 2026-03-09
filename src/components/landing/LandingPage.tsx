@@ -279,9 +279,8 @@ export default function LandingPage() {
                 backdropFilter: 'blur(12px)',
                 background: 'rgba(10,10,10,0.6)',
             }}>
-                <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: '22px', letterSpacing: '-0.5px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div className="animate-pulse-dot" style={{ width: '8px', height: '8px', background: '#d4f500', borderRadius: '50%' }} />
-                    ZYO
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <img src="/yo/yolo.png" alt="Yolo Logo" style={{ height: 32, width: 'auto' }} />
                 </div>
                 <ul style={{ display: 'flex', alignItems: 'center', gap: '32px', fontSize: '13px', letterSpacing: '0.02em', color: '#888', listStyle: 'none' }}>
                     <li><a href="#" style={{ color: 'inherit', textDecoration: 'none', transition: 'color 0.2s' }}

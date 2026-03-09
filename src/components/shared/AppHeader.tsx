@@ -94,14 +94,8 @@ export function AppHeader({ active }: { active: ActiveTab }) {
             justifyContent: 'space-between',
         }}>
 
-            <Link href="/" style={{ textDecoration: 'none', color: 'inherit', flexShrink: 0 }}>
-                <div style={{
-                    fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 20,
-                    letterSpacing: '-0.5px', display: 'flex', alignItems: 'center', gap: 7,
-                }}>
-                    <div style={{ width: 7, height: 7, background: '#d4f500', borderRadius: '50%', animation: 'pulse 2s infinite' }} />
-                    Zyo
-                </div>
+            <Link href="/" style={{ textDecoration: 'none', color: 'inherit', flexShrink: 0, display: 'flex', alignItems: 'center' }}>
+                <img src="/yo/yolo.png" alt="Yolo Logo" style={{ height: 28, width: 'auto' }} />
             </Link>
 
             <div style={{

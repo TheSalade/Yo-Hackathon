@@ -20,7 +20,7 @@ export function CustomCursor() {
         // Hide OS cursor globally
         document.documentElement.style.setProperty('--cursor-hidden', 'none');
         const style = document.createElement('style');
-        style.id = '__zyo-cursor-style';
+        style.id = '__yolo-cursor-style';
         style.textContent = '*, *::before, *::after { cursor: none !important; }';
         document.head.appendChild(style);
 
@@ -42,7 +42,7 @@ export function CustomCursor() {
         return () => {
             document.removeEventListener('mousemove', onMove);
             cancelAnimationFrame(af);
-            document.getElementById('__zyo-cursor-style')?.remove();
+            document.getElementById('__yolo-cursor-style')?.remove();
         };
     }, []);
 

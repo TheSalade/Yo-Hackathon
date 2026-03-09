@@ -4,11 +4,11 @@ import { Providers } from '@/lib/providers';
 import { CustomCursor } from '@/components/shared/CustomCursor';
 
 export const metadata: Metadata = {
-  title: 'Zyo — Your savings, finally working hard.',
+  title: 'Yolo — Your savings, finally working hard.',
   description: 'Deposit USDC, ETH, or BTC. Earn real onchain yield. No banks. No bullshit. Powered by YO Protocol.',
   keywords: ['DeFi', 'savings', 'yield', 'USDC', 'ETH', 'Base', 'YO Protocol'],
   openGraph: {
-    title: 'Zyo — Your savings, finally working hard.',
+    title: 'Yolo — Your savings, finally working hard.',
     description: 'Deposit USDC, ETH, or BTC. Earn real onchain yield. Powered by YO Protocol on Base.',
     type: 'website',
   },
