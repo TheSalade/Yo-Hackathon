@@ -1,4 +1,5 @@
 # YOLO: The Savings Account You Actually Want to Use 
+<img width="1920" height="462" alt="yolo2" src="https://github.com/user-attachments/assets/7c9d6923-ff9b-468b-a0f7-b3e6af7d7273" />
 
 Built for the **"Build the Smartest DeFi Savings Account with YO"** hackathon.
 
