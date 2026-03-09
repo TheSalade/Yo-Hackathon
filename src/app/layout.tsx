@@ -12,6 +12,9 @@ export const metadata: Metadata = {
     description: 'Deposit USDC, ETH, or BTC. Earn real onchain yield. Powered by YO Protocol on Base.',
     type: 'website',
   },
+  icons: {
+    icon: '/yo/favicon.ico',
+  },
 };
 
 export default function RootLayout({
