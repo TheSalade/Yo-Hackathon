@@ -272,7 +272,7 @@ export function SaveDashboard() {
             await deposit({ token: tokenAddr, amount: parsedAmt, chainId });
 
             // On Success
-            setYodAmt(amountStr);
+            setYodAmt(`${previewYoTokens} ${activeId}`);
             setYodActive(true);
             setTxStep('idle'); // Changed from 'success' to 'idle' for consistency with withdraw
             setAmountStr('');
