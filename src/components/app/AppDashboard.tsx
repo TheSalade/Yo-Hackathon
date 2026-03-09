@@ -3,17 +3,31 @@
 import { useAccount, useDisconnect } from 'wagmi';
 import { useConnect } from 'wagmi';
 import { injected } from 'wagmi/connectors';
-import Link from 'next/link';
 import { AppHeader } from '@/components/shared/AppHeader';
-import { getAllVaults, type VaultConfig } from '@yo-protocol/core';
-import { useUserBalances } from '@yo-protocol/react';
-import { VaultCard } from './VaultCard';
-import { APP_VAULTS } from '@/lib/constants';
+import { VAULT_META } from '@/lib/constants';
+import { useAppPositions } from '@/hooks/useAppPositions';
+import { useState } from 'react';
+import { DepositModal } from './DepositModal';
+import { WithdrawModal } from './WithdrawModal';
+import { formatUnits } from 'viem';
 
-function TotalBalanceCard({ address }: { address?: `0x${string}` }) {
-    const { balances, isLoading } = useUserBalances(address);
+const PRICES: Record<string, number> = {
+    yoUSD: 1,
+    yoBTC: 65000,
+    yoEUR: 1.08,
+    yoETH: 2500
+};
 
-    const totalUsd = balances?.totalBalanceUsd ? Number(balances.totalBalanceUsd) : 0;
+function TotalBalanceCard() {
+    const { positions, isLoading } = useAppPositions();
+
+    const totalUsd = positions.reduce((acc, pos) => {
+        if (!pos.hasPosition) return acc;
+        const n = Number(formatUnits(pos.assets, pos.decimals));
+        const price = PRICES[pos.vault.symbol] || 0;
+        return acc + (n * price);
+    }, 0);
+
     const hasBalance = totalUsd > 0;
 
     return (
@@ -45,6 +59,60 @@ function TotalBalanceCard({ address }: { address?: `0x${string}` }) {
     );
 }
 
+function UserPositionList() {
+    const { positions, isLoading, refetch } = useAppPositions();
+    const activePositions = positions.filter(p => p.hasPosition);
+
+    const [depositVault, setDepositVault] = useState<any>(null);
+    const [withdrawVault, setWithdrawVault] = useState<any>(null);
+
+    if (!isLoading && activePositions.length === 0) return null;
+
+    return (
+        <div style={{ marginBottom: '40px' }}>
+            <h2 style={{ fontFamily: 'Syne, sans-serif', fontSize: '18px', fontWeight: 700, color: '#f5f4f0', letterSpacing: '-0.3px', marginBottom: '16px' }}>Your Positions</h2>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {isLoading ? (
+                    <div className="skeleton" style={{ height: '70px', borderRadius: '16px' }} />
+                ) : (
+                    activePositions.map(pos => {
+                        const meta = VAULT_META[pos.vault.symbol as keyof typeof VAULT_META];
+                        const amount = Number(formatUnits(pos.assets, pos.decimals));
+                        const price = PRICES[pos.vault.symbol] || 0;
+                        const usdValue = amount * price;
+
+                        return (
+                            <div key={pos.vault.symbol} style={{ background: '#111', border: '1px solid #2a2a2a', borderRadius: '16px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                    <img src={`/yo/${pos.vault.symbol}.svg`} alt={pos.vault.symbol} style={{ width: 40, height: 40, borderRadius: 12 }} />
+                                    <div>
+                                        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: '#f5f4f0' }}>{pos.vault.symbol}</div>
+                                        <div style={{ fontSize: '13px', color: '#888', marginTop: '2px' }}>{amount.toLocaleString(undefined, { maximumFractionDigits: 6 })} {meta.underlyingSymbol}</div>
+                                    </div>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+                                    <div style={{ textAlign: 'right' }}>
+                                        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: '#fff' }}>${usdValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                                        <div style={{ fontSize: '12px', color: '#00e87a', fontWeight: 600 }}>{meta.apy}% APY</div>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        <button onClick={() => setDepositVault(pos.vault)} style={{ background: '#2a2a2a', color: '#f5f4f0', border: 'none', padding: '8px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, fontFamily: 'Syne, sans-serif', cursor: 'pointer', transition: 'background 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = '#3a3a3a'} onMouseLeave={e => e.currentTarget.style.background = '#2a2a2a'}>Add funds</button>
+                                        <button onClick={() => setWithdrawVault(pos.vault)} style={{ background: 'none', color: '#888', border: '1px solid #333', padding: '8px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, fontFamily: 'Syne, sans-serif', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={e => { e.currentTarget.style.borderColor = '#555'; e.currentTarget.style.color = '#fff'; }} onMouseLeave={e => { e.currentTarget.style.borderColor = '#333'; e.currentTarget.style.color = '#888'; }}>Withdraw</button>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })
+                )}
+            </div>
+
+            {depositVault && <DepositModal vault={depositVault} onClose={() => { setDepositVault(null); refetch(); }} />}
+            {withdrawVault && <WithdrawModal vault={withdrawVault} onClose={() => { setWithdrawVault(null); refetch(); }} />}
+        </div>
+    );
+}
+
 function ConnectWalletBtn() {
     const { connect } = useConnect();
     return (
@@ -60,10 +128,6 @@ function ConnectWalletBtn() {
 export function AppDashboard() {
     const { address, isConnected } = useAccount();
     const { disconnect } = useDisconnect();
-
-    const vaults: VaultConfig[] = getAllVaults().filter(v =>
-        APP_VAULTS.includes(v.symbol as typeof APP_VAULTS[number])
-    );
 
     const shortAddress = address ? `${address.slice(0, 6)}...${address.slice(-4)}` : 'Connected';
 
@@ -91,22 +155,11 @@ export function AppDashboard() {
                         </h1>
                     </div>
 
-                    <TotalBalanceCard address={address} />
-
-                    <div style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <h2 style={{ fontFamily: 'Syne, sans-serif', fontSize: '18px', fontWeight: 700, color: '#f5f4f0', letterSpacing: '-0.3px' }}>Available Vaults</h2>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#555' }}>
-                            <div style={{ width: '6px', height: '6px', background: '#00e87a', borderRadius: '50%', animation: 'pulse 2s infinite' }} />
-                            Live on Base
-                        </div>
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
-                        {vaults.map(vault => <VaultCard key={vault.symbol} vault={vault} />)}
-                    </div>
+                    <TotalBalanceCard />
+                    <UserPositionList />
 
                     <div style={{ marginTop: '48px', padding: '20px 24px', background: '#111', border: '1px solid #1e1e1e', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ fontSize: '20px' }}>🔒</div>
+                        <img src="/yo/yo_round.svg" alt="Secure" style={{ width: 22, height: 22 }} />
                         <div>
                             <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '13px', fontWeight: 700, color: '#f5f4f0', marginBottom: '2px' }}>Non-custodial &amp; audited</div>
                             <div style={{ fontSize: '12px', color: '#555' }}>Your funds are secured by YO Protocol smart contracts on Base. You retain full custody at all times.</div>

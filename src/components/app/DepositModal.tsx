@@ -158,8 +158,8 @@ export function DepositModal({ vault, onClose }: DepositModalProps) {
                 {/* Header */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
                     <div>
-                        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '20px', fontWeight: 800, color: '#f5f4f0', letterSpacing: '-0.5px' }}>
-                            {meta.emoji} Deposit {meta.underlyingSymbol}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontFamily: 'Syne, sans-serif', fontSize: '20px', fontWeight: 800, color: '#f5f4f0', letterSpacing: '-0.5px' }}>
+                            <img src={`/yo/${vault.symbol}.svg`} alt={vault.symbol} style={{ width: 24, height: 24 }} /> Deposit {meta.underlyingSymbol}
                         </div>
                         <div style={{ fontSize: '12px', color: '#555', marginTop: '4px' }}>
                             {vault.name} · {meta.apy}% APY

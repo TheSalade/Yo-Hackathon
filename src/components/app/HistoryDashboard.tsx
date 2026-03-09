@@ -138,7 +138,7 @@ export function HistoryDashboard() {
             <div style={{ minHeight: '100vh', background: '#0a0a0a', color: '#f5f4f0', paddingTop: 65, fontFamily: 'DM Sans, sans-serif' }}>
                 {!isConnected ? (
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 65px)', textAlign: 'center', gap: 16 }}>
-                        <div style={{ fontSize: 40 }}>📋</div>
+                        <img src="/yo/yo_round.svg" alt="History" style={{ width: 48, height: 48 }} />
                         <div style={{ ...S.syne, fontSize: 22, fontWeight: 800, letterSpacing: '-0.5px' }}>Connect your wallet</div>
                         <div style={{ fontSize: 14, color: '#555', maxWidth: 320, lineHeight: 1.7 }}>
                             Connect your wallet to see your full transaction history across all YO Protocol vaults.
