@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useAccount, useConnect, useDisconnect } from 'wagmi';
+import { useAccount, useConnect, useDisconnect, useChainId, useSwitchChain } from 'wagmi';
+import { base, mainnet } from 'wagmi/chains';
 import { injected } from 'wagmi/connectors';
 
 type ActiveTab = 'Save' | 'History' | 'Dashboard';
@@ -32,6 +33,49 @@ function ConnectWalletBtn() {
     );
 }
 
+function NetworkSwitcher() {
+    const chainId = useChainId();
+    const { switchChain } = useSwitchChain();
+
+    const isBase = chainId === 8453;
+    const isEth = chainId === 1;
+
+    const btnStyle = (active: boolean): React.CSSProperties => ({
+        fontFamily: 'Syne, sans-serif',
+        fontSize: 10,
+        fontWeight: 700,
+        padding: '4px 10px',
+        borderRadius: 100,
+        border: active ? '1px solid #d4f500' : '1px solid #2a2a2a',
+        background: active ? 'rgba(212,245,0,0.1)' : 'none',
+        color: active ? '#d4f500' : '#555',
+        cursor: 'pointer',
+        transition: 'all 0.2s',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 4
+    });
+
+    return (
+        <div style={{ display: 'flex', gap: 6, background: '#141414', padding: '4px', borderRadius: 100, border: '1px solid #1e1e1e' }}>
+            <button
+                onClick={() => switchChain({ chainId: 8453 })}
+                style={btnStyle(isBase)}
+            >
+                <img src="https://mint.fun/api/avatar/8453" alt="Base" style={{ width: 12, height: 12, borderRadius: '50%' }} />
+                Base
+            </button>
+            <button
+                onClick={() => switchChain({ chainId: 1 })}
+                style={btnStyle(isEth)}
+            >
+                <img src="https://mint.fun/api/avatar/1" alt="Eth" style={{ width: 12, height: 12, borderRadius: '50%' }} />
+                Ethereum
+            </button>
+        </div>
+    );
+}
+
 export function AppHeader({ active }: { active: ActiveTab }) {
     const { address, isConnected } = useAccount();
     const { disconnect } = useDisconnect();
@@ -45,13 +89,11 @@ export function AppHeader({ active }: { active: ActiveTab }) {
             borderBottom: '1px solid #1e1e1e',
             backdropFilter: 'blur(16px)',
             padding: '20px 40px',
-            // Flex for left/right, tabs absolutely centered
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
         }}>
 
-            {/* ── Left: Logo → home ── */}
             <Link href="/" style={{ textDecoration: 'none', color: 'inherit', flexShrink: 0 }}>
                 <div style={{
                     fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 20,
@@ -62,7 +104,6 @@ export function AppHeader({ active }: { active: ActiveTab }) {
                 </div>
             </Link>
 
-            {/* ── Center: tabs — absolutely centered to viewport ── */}
             <div style={{
                 position: 'absolute',
                 left: '50%',
@@ -92,8 +133,8 @@ export function AppHeader({ active }: { active: ActiveTab }) {
                 })}
             </div>
 
-            {/* ── Right: wallet (right-aligned) ── */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexShrink: 0 }}>
+                {isConnected && <NetworkSwitcher />}
                 {isConnected ? (
                     <>
                         <div style={{
