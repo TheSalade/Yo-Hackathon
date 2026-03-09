@@ -212,11 +212,9 @@ export default function LandingPage() {
             {/* HERO */}
             <section style={{
                 position: 'relative',
-                minHeight: '100vh',
                 display: 'flex',
-                alignItems: 'center',
                 justifyContent: 'center',
-                padding: '120px 48px 80px',
+                padding: '160px 48px 80px',
                 overflow: 'hidden',
             }}>
                 {/* Glow orbs */}
