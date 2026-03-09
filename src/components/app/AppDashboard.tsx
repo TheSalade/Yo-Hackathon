@@ -10,6 +10,7 @@ import { useState } from 'react';
 import { DepositModal } from './DepositModal';
 import { WithdrawModal } from './WithdrawModal';
 import { formatUnits } from 'viem';
+import { useVaults } from '@yo-protocol/react';
 
 const PRICES: Record<string, number> = {
     yoUSD: 1,
@@ -61,6 +62,7 @@ function TotalBalanceCard() {
 
 function UserPositionList() {
     const { positions, isLoading, refetch } = useAppPositions();
+    const { vaults: vaultsStats } = useVaults();
     const activePositions = positions.filter(p => p.hasPosition);
 
     const [depositVault, setDepositVault] = useState<any>(null);
@@ -82,6 +84,11 @@ function UserPositionList() {
                         const price = PRICES[pos.vault.symbol] || 0;
                         const usdValue = amount * price;
 
+                        const vaultStat = vaultsStats?.find((v: any) => v.id === pos.vault.symbol);
+                        const yieldRaw = vaultStat?.yield?.['7d'] ?? vaultStat?.yield?.['30d'];
+                        const displayApyNum = yieldRaw ? Number(yieldRaw) : meta.apy;
+                        const displayApy = displayApyNum.toFixed(2);
+
                         return (
                             <div key={pos.vault.symbol} style={{ background: '#111', border: '1px solid #2a2a2a', borderRadius: '16px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -94,7 +101,7 @@ function UserPositionList() {
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
                                     <div style={{ textAlign: 'right' }}>
                                         <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '16px', fontWeight: 700, color: '#fff' }}>${usdValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-                                        <div style={{ fontSize: '12px', color: '#00e87a', fontWeight: 600 }}>{meta.apy}% APY</div>
+                                        <div style={{ fontSize: '12px', color: '#00e87a', fontWeight: 600 }}>{displayApy}% APY</div>
                                     </div>
                                     <div style={{ display: 'flex', gap: '8px' }}>
                                         <button onClick={() => setDepositVault(pos.vault)} style={{ background: '#2a2a2a', color: '#f5f4f0', border: 'none', padding: '8px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, fontFamily: 'Syne, sans-serif', cursor: 'pointer', transition: 'background 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = '#3a3a3a'} onMouseLeave={e => e.currentTarget.style.background = '#2a2a2a'}>Add funds</button>
