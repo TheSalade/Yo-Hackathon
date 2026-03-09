@@ -13,13 +13,15 @@ export function useAppPositions() {
     const { address } = useAccount();
     const vaults: VaultConfig[] = getAllVaults().filter(v => APP_VAULTS.includes(v.symbol as typeof APP_VAULTS[number]));
 
-    // 1. Fetch share balances (using chainId 8453 since all APP_VAULTS are on Base)
+    const getResolvedChain = (v: VaultConfig) => ((v.chains as number[])?.includes(8453) ? 8453 : ((v.chains as number[])?.[0] || 8453)) as 1 | 8453;
+
+    // 1. Fetch share balances using dynamic chainIds
     const balanceContracts = vaults.map(v => ({
         address: v.address,
         abi: erc4626Abi,
         functionName: 'balanceOf',
         args: [address as `0x${string}`],
-        chainId: 8453 as 8453
+        chainId: getResolvedChain(v)
     }));
 
     const { data: shareBalances, refetch: refetchShares } = useReadContracts({
@@ -35,7 +37,7 @@ export function useAppPositions() {
             abi: erc4626Abi,
             functionName: 'convertToAssets',
             args: [shares],
-            chainId: 8453 as 8453
+            chainId: getResolvedChain(v)
         };
     });
 
@@ -49,7 +51,7 @@ export function useAppPositions() {
         address: v.address,
         abi: erc4626Abi,
         functionName: 'decimals',
-        chainId: 8453 as 8453
+        chainId: getResolvedChain(v)
     }));
     const { data: decimalsData } = useReadContracts({
         contracts: decimalContracts

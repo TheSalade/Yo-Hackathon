@@ -55,5 +55,5 @@ export const TICKER_VAULTS: { id: VaultId; chain: string }[] = [
     { id: 'yoUSDT', chain: 'Ethereum' },
 ];
 
-// Vaults shown in the app dashboard (Base-first priority)
-export const APP_VAULTS: VaultId[] = ['yoUSD', 'yoBTC', 'yoEUR', 'yoETH'];
+// Vaults shown in the app dashboard
+export const APP_VAULTS: VaultId[] = ['yoUSD', 'yoBTC', 'yoEUR', 'yoETH', 'yoGOLD', 'yoUSDT'];
