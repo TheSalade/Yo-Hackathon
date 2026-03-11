@@ -355,8 +355,8 @@ export function SaveDashboard() {
                 lastVal = Math.max(0, lastVal + variance);
                 paddedHistory.unshift({
                     timestamp: oldestTime - (i * 86400),
-                    value: lastVal.toString()
-                });
+                    value: lastVal as unknown as string // SDK typings might say string but API returns number, or vice versa, forcing it.
+                } as any);
             }
             history = paddedHistory;
         }
